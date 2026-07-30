@@ -63,10 +63,8 @@ public class DictController {
         return Result.success(dictService.addDictData(code, dictData));
     }
 
-    @PutMapping("/{code}/data/{id}")
-    public Result<Boolean> updateData(@PathVariable String code, @PathVariable Long id,
-                                      @RequestBody DictData dictData) {
-        dictData.setId(id);
+    @PutMapping("/{code}/data")
+    public Result<Boolean> updateData(@PathVariable String code, @RequestBody DictData dictData) {
         return Result.success(dictService.updateDictData(code, dictData));
     }
 
