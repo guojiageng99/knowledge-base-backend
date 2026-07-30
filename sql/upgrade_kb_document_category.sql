@@ -10,10 +10,25 @@ PREPARE statement FROM @sql;
 EXECUTE statement;
 DEALLOCATE PREPARE statement;
 
+-- Use UTF-8 bytes so Windows shell encodings cannot corrupt the emoji default.
+SET @sql = CONCAT('ALTER TABLE kb_category MODIFY COLUMN icon VARCHAR(50) DEFAULT ''', _utf8mb4 0xF09F9381, '''');
+PREPARE statement FROM @sql;
+EXECUTE statement;
+DEALLOCATE PREPARE statement;
+
 SET @sql = IF(
     (SELECT COUNT(*) FROM information_schema.columns
      WHERE table_schema = DATABASE() AND table_name = 'kb_category' AND column_name = 'icon') = 0,
-    'ALTER TABLE kb_category ADD COLUMN icon VARCHAR(50) DEFAULT ''folder'' AFTER description',
+    'ALTER TABLE kb_category ADD COLUMN icon VARCHAR(50) DEFAULT ''📁'' AFTER description',
+    'SELECT 1');
+PREPARE statement FROM @sql;
+EXECUTE statement;
+DEALLOCATE PREPARE statement;
+
+SET @sql = IF(
+    (SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'kb_category' AND column_name = 'category_icon') = 1,
+    'ALTER TABLE kb_category DROP COLUMN category_icon',
     'SELECT 1');
 PREPARE statement FROM @sql;
 EXECUTE statement;

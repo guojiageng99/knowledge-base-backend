@@ -24,58 +24,61 @@ import java.util.List;
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
-@Tag(name = "Category Management", description = "Document category APIs")
+@Tag(name = "分类管理", description = "文档分类管理接口")
 public class CategoryController {
 
     private final CategoryService categoryService;
 
     @PostMapping
-    @Operation(summary = "Create category")
+    @Operation(summary = "创建分类", description = "创建新的文档分类")
     public Result<Long> createCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
-        return Result.success("Category created successfully", categoryService.createCategory(categoryDTO));
+        return Result.success("创建分类成功", categoryService.createCategory(categoryDTO));
     }
 
     @PutMapping
-    @Operation(summary = "Update category")
+    @Operation(summary = "更新分类", description = "更新分类信息")
     public Result<Boolean> updateCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
-        return Result.success("Category updated successfully", categoryService.updateCategory(categoryDTO));
+        return Result.success("更新分类成功", categoryService.updateCategory(categoryDTO));
     }
 
     @DeleteMapping("/{categoryId}")
-    @Operation(summary = "Delete category")
-    public Result<Boolean> deleteCategory(@PathVariable Long categoryId) {
-        return Result.success("Category deleted successfully", categoryService.deleteCategory(categoryId));
+    @Operation(summary = "删除分类", description = "根据分类ID删除分类")
+    public Result<Boolean> deleteCategory(
+            @Parameter(description = "分类ID", required = true) @PathVariable Long categoryId) {
+        return Result.success("删除分类成功", categoryService.deleteCategory(categoryId));
     }
 
     @GetMapping("/tree")
-    @Operation(summary = "Get category tree")
+    @Operation(summary = "获取分类树", description = "获取完整的分类树结构")
     public Result<List<CategoryVO>> getCategoryTree() {
         return Result.success(categoryService.getCategoryTree());
     }
 
     @GetMapping("/children/{parentId}")
-    @Operation(summary = "Get child categories")
-    public Result<List<CategoryVO>> getChildren(@PathVariable Long parentId) {
+    @Operation(summary = "获取子分类", description = "获取指定父分类的子分类列表")
+    public Result<List<CategoryVO>> getChildren(
+            @Parameter(description = "父分类ID", required = true) @PathVariable Long parentId) {
         return Result.success(categoryService.getChildren(parentId));
     }
 
     @PutMapping("/{categoryId}/move")
-    @Operation(summary = "Move category")
+    @Operation(summary = "移动分类", description = "移动分类到新的父分类下")
     public Result<Boolean> moveCategory(
-            @PathVariable Long categoryId,
-            @Parameter(required = true) @RequestParam Long newParentId) {
-        return Result.success("Category moved successfully", categoryService.moveCategory(categoryId, newParentId));
+            @Parameter(description = "分类ID", required = true) @PathVariable Long categoryId,
+            @Parameter(description = "新父分类ID", required = true) @RequestParam Long newParentId) {
+        return Result.success("移动分类成功", categoryService.moveCategory(categoryId, newParentId));
     }
 
     @GetMapping("/list")
-    @Operation(summary = "Get all categories")
+    @Operation(summary = "获取所有分类", description = "获取所有分类列表（平铺）")
     public Result<List<CategoryVO>> getAllCategories() {
         return Result.success(categoryService.getAllCategories());
     }
 
     @GetMapping("/{categoryId}")
-    @Operation(summary = "Get category by ID")
-    public Result<CategoryVO> getCategoryById(@PathVariable Long categoryId) {
+    @Operation(summary = "查询分类", description = "根据分类ID查询分类详情")
+    public Result<CategoryVO> getCategoryById(
+            @Parameter(description = "分类ID", required = true) @PathVariable Long categoryId) {
         return Result.success(categoryService.getCategoryById(categoryId));
     }
 }

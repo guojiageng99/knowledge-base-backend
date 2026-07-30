@@ -6,20 +6,27 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-@Schema(description = "Category request")
+@Schema(description = "分类信息")
 public class CategoryDTO {
 
-    @Schema(description = "Category ID")
+    @Schema(description = "分类ID")
     private Long id;
 
-    @NotBlank(message = "Category name must not be blank")
-    @Size(max = 50, message = "Category name must not exceed 50 characters")
-    @Schema(description = "Category name")
+    @NotBlank(message = "分类名称不能为空")
+    @Size(max = 50, message = "分类名称不能超过50个字符")
+    @Schema(description = "分类名称")
     private String name;
 
-    @Size(max = 500, message = "Description must not exceed 500 characters")
+    @Size(max = 500, message = "分类描述不能超过500个字符")
+    @Schema(description = "分类描述")
     private String description;
+
+    @Schema(description = "父分类ID")
     private Long parentId;
+
+    @Schema(description = "排序号")
     private Integer sortOrder;
+
+    @Schema(description = "图标")
     private String icon;
 }

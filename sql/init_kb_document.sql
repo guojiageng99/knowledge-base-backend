@@ -47,12 +47,12 @@ CREATE TABLE IF NOT EXISTS kb_document (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Documents';
 
 CREATE TABLE IF NOT EXISTS kb_category (
-    parent_id BIGINT NOT NULL DEFAULT 0,
     id BIGINT NOT NULL,
+    parent_id BIGINT NOT NULL DEFAULT 0,
     category_name VARCHAR(50) NOT NULL,
     category_code VARCHAR(50) NOT NULL,
     description VARCHAR(500) DEFAULT NULL,
-    icon VARCHAR(50) DEFAULT 'folder',
+    icon VARCHAR(50) DEFAULT '📁',
     sort INT NOT NULL DEFAULT 0,
     status TINYINT NOT NULL DEFAULT 1,
     document_count INT NOT NULL DEFAULT 0,
