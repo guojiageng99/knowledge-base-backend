@@ -26,6 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 @Service
@@ -40,6 +42,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Value("${file.upload.max-size:104857600}")
     private long maxFileSize;
+
+    @Value("${file.upload.allowed-types:pdf,doc,docx,xls,xlsx,ppt,pptx,txt,md}")
+    private List<String> allowedFileTypes;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -119,8 +124,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     public String uploadDocumentFile(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BusinessException("File must not be empty");
         if (file.getSize() > maxFileSize) throw new BusinessException("File size exceeds the limit");
-        String extension = FileUtil.extName(file.getOriginalFilename());
+        String extension = FileUtil.extName(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
         if (!StrUtil.isNotBlank(extension)) throw new BusinessException("Unsupported file type");
+        if (!allowedFileTypes.contains(extension)) throw new BusinessException("Unsupported file type");
         String datePath = LocalDateTime.now().toLocalDate().toString();
         File directory = new File(uploadPath, datePath).getAbsoluteFile();
         if (!directory.exists() && !directory.mkdirs()) throw new BusinessException("Failed to create upload directory");
