@@ -1,14 +1,19 @@
 package com.knowledge.base.foundation.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.knowledge.base.common.exception.BusinessException;
+import com.knowledge.base.common.result.Result;
 import com.knowledge.base.common.utils.SnowflakeIdGenerator;
+import com.knowledge.base.foundation.dto.NotificationDTO;
+import com.knowledge.base.foundation.dto.NotificationQueryDTO;
 import com.knowledge.base.foundation.entity.Notification;
 import com.knowledge.base.foundation.mapper.NotificationMapper;
 import com.knowledge.base.foundation.service.NotificationService;
+import com.knowledge.base.foundation.vo.NotificationVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +25,36 @@ import java.time.LocalDateTime;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Long> sendNotification(NotificationDTO notificationDTO) {
+        Notification notification = BeanUtil.copyProperties(notificationDTO, Notification.class);
+        notification.setIsRead(0);
+        if (!sendNotification(notification)) {
+            throw new BusinessException("Failed to send notification");
+        }
+        return Result.success(notification.getId());
+    }
+
+    @Override
+    public Result<IPage<NotificationVO>> getNotifications(NotificationQueryDTO queryDTO) {
+        if (queryDTO.getUserId() == null) {
+            throw new BusinessException("User ID is required");
+        }
+        LambdaQueryWrapper<Notification> query = new LambdaQueryWrapper<Notification>()
+                .eq(Notification::getUserId, queryDTO.getUserId())
+                .eq(queryDTO.getNotificationType() != null, Notification::getNotificationType,
+                        queryDTO.getNotificationType())
+                .eq(queryDTO.getIsRead() != null, Notification::getIsRead, queryDTO.getIsRead())
+                .ge(queryDTO.getStartTime() != null, Notification::getCreateTime, queryDTO.getStartTime())
+                .le(queryDTO.getEndTime() != null, Notification::getCreateTime, queryDTO.getEndTime())
+                .orderByDesc(Notification::getCreateTime);
+        IPage<NotificationVO> page = notificationMapper.selectPage(
+                new Page<Notification>(queryDTO.getCurrent(), queryDTO.getSize()), query)
+                .convert(notification -> BeanUtil.copyProperties(notification, NotificationVO.class));
+        return Result.success(page);
+    }
 
     @Override
     public IPage<Notification> pageNotifications(Long current, Long size, Long userId, Integer isRead) {
