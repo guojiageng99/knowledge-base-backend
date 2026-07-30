@@ -47,21 +47,25 @@ CREATE TABLE IF NOT EXISTS kb_document (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Documents';
 
 CREATE TABLE IF NOT EXISTS kb_category (
+    parent_id BIGINT NOT NULL DEFAULT 0,
     id BIGINT NOT NULL,
     category_name VARCHAR(50) NOT NULL,
-    parent_id BIGINT NOT NULL DEFAULT 0,
-    category_icon VARCHAR(50) DEFAULT NULL,
+    category_code VARCHAR(50) NOT NULL,
     description VARCHAR(500) DEFAULT NULL,
+    icon VARCHAR(50) DEFAULT 'folder',
     sort INT NOT NULL DEFAULT 0,
-    document_count INT NOT NULL DEFAULT 0,
     status TINYINT NOT NULL DEFAULT 1,
+    document_count INT NOT NULL DEFAULT 0,
+    remark VARCHAR(500) DEFAULT NULL,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     create_by BIGINT DEFAULT NULL,
     update_by BIGINT DEFAULT NULL,
     deleted TINYINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    KEY idx_parent_id (parent_id)
+    KEY idx_parent_id (parent_id),
+    KEY idx_category_code (category_code),
+    KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Document categories';
 
 CREATE TABLE IF NOT EXISTS tb_tag (
