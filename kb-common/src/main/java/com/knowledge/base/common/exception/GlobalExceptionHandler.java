@@ -9,6 +9,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -40,6 +41,11 @@ public class GlobalExceptionHandler {
     public Result<Void> handleConstraintViolationException(ConstraintViolationException e) {
         log.error("约束校验异常：{}", e.getMessage(), e);
         return Result.error(ResultCode.PARAM_ERROR.getCode(), e.getMessage());
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public Result<Void> handleNoResourceFoundException(NoResourceFoundException e) {
+        return Result.error(ResultCode.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
