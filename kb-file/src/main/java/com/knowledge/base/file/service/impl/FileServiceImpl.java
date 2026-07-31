@@ -98,6 +98,12 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    public String getPreviewUrl(Long fileId) {
+        requireFile(fileId);
+        return properties.getUrl().getPreviewPrefix() + "/" + fileId + "/content";
+    }
+
+    @Override
     public FileInfoVO getFileInfo(Long fileId) {
         return toVO(requireFile(fileId));
     }
@@ -241,7 +247,7 @@ public class FileServiceImpl implements FileService {
                 .fileType(file.getFileType())
                 .mimeType(file.getMimeType())
                 .fileUrl(base + "/download/" + file.getId())
-                .previewUrl(properties.getUrl().getPreviewPrefix() + "/" + file.getId())
+                .previewUrl(getPreviewUrl(file.getId()))
                 .uploaderId(file.getUploaderId())
                 .accessLevel(file.getAccessLevel())
                 .downloadCount(file.getDownloadCount())

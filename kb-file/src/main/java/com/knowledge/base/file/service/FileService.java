@@ -20,6 +20,8 @@ public interface FileService {
 
     void previewFile(Long fileId, HttpServletResponse response) throws IOException;
 
+    String getPreviewUrl(Long fileId);
+
     FileInfoVO getFileInfo(Long fileId);
 
     PageResult<FileInfoVO> pageFiles(FileQueryDTO dto);

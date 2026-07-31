@@ -27,4 +27,8 @@ public class FileStorageFactory {
         }
         return storage;
     }
+
+    public String getStorageType() {
+        return properties.getType();
+    }
 }

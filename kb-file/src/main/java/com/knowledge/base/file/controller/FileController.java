@@ -58,13 +58,19 @@ public class FileController {
         return Result.success(fileService.uploadFiles(files, dto));
     }
 
-    @GetMapping("/download/{fileId}")
+    @GetMapping({"/download/{fileId}", "/download/{fileId}/**"})
     @Operation(summary = "Download a file")
     public void downloadFile(@PathVariable Long fileId, HttpServletResponse response) throws IOException {
         fileService.downloadFile(fileId, response);
     }
 
     @GetMapping("/preview/{fileId}")
+    @Operation(summary = "Get file preview URL")
+    public Result<String> getPreviewUrl(@PathVariable Long fileId) {
+        return Result.success(fileService.getPreviewUrl(fileId));
+    }
+
+    @GetMapping({"/preview/{fileId}/content", "/preview/{fileId}/**"})
     @Operation(summary = "Preview a file")
     public void previewFile(@PathVariable Long fileId, HttpServletResponse response) throws IOException {
         fileService.previewFile(fileId, response);

@@ -15,6 +15,10 @@ public enum StorageType {
         return beanName;
     }
 
+    public String getCode() {
+        return code;
+    }
+
     public static StorageType fromCode(String code) {
         for (StorageType type : values()) {
             if (type.code.equalsIgnoreCase(code)) {
