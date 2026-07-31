@@ -130,7 +130,9 @@ CREATE TABLE IF NOT EXISTS tb_document_version (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     UNIQUE KEY uk_doc_version (document_id, version),
-    KEY idx_document_id (document_id)
+    KEY idx_document_id (document_id),
+    KEY idx_operator_id (operator_id),
+    KEY idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Document versions';
 
 CREATE TABLE IF NOT EXISTS tb_document_review (

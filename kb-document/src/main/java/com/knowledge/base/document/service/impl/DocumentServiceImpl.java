@@ -18,6 +18,7 @@ import com.knowledge.base.document.mapper.DocumentTagMapper;
 import com.knowledge.base.document.mapper.DocumentMapper;
 import com.knowledge.base.document.mapper.TagMapper;
 import com.knowledge.base.document.service.DocumentService;
+import com.knowledge.base.document.service.DocumentVersionService;
 import com.knowledge.base.document.vo.DocumentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -44,6 +46,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final DocumentMapper documentMapper;
     private final DocumentTagMapper documentTagMapper;
     private final TagMapper tagMapper;
+    private final DocumentVersionService documentVersionService;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -81,6 +84,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (dto.getTagIds() != null) {
             addTagsToDocument(document.getId(), dto.getTagIds());
         }
+        documentVersionService.createVersion(document.getId(), null, 1L);
         return document.getId();
     }
 
@@ -96,6 +100,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         boolean updated = documentMapper.updateById(document) > 0;
         if (dto.getTagIds() != null) {
             addTagsToDocument(dto.getId(), dto.getTagIds());
+        }
+        if (updated) {
+            documentVersionService.createVersion(dto.getId(), buildChangeDescription(existing, document), 1L);
         }
         return updated;
     }
@@ -198,6 +205,20 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     private Integer defaultValue(Integer value, int defaultValue) { return value == null ? defaultValue : value; }
+
+    private String buildChangeDescription(Document oldDocument, Document newDocument) {
+        List<String> changes = new ArrayList<>();
+        if (newDocument.getTitle() != null && !Objects.equals(oldDocument.getTitle(), newDocument.getTitle())) {
+            changes.add("标题变更");
+        }
+        if (newDocument.getContent() != null && !Objects.equals(oldDocument.getContent(), newDocument.getContent())) {
+            changes.add("内容更新");
+        }
+        if (newDocument.getCategoryId() != null && !Objects.equals(oldDocument.getCategoryId(), newDocument.getCategoryId())) {
+            changes.add("分类调整");
+        }
+        return changes.isEmpty() ? "文档更新" : String.join("、", changes);
+    }
 
     private void replaceDocumentTags(Long documentId, List<Long> requestedTagIds) {
         Set<Long> newTagIds = requestedTagIds == null ? Set.of() : new LinkedHashSet<>(requestedTagIds);
