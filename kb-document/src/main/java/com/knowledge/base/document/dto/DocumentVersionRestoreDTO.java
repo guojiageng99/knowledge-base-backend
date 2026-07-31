@@ -11,10 +11,13 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Document version restore request")
+@Schema(description = "文档版本恢复参数")
 public class DocumentVersionRestoreDTO {
 
-    @NotNull(message = "Version ID is required")
+    @Schema(description = "版本ID")
+    @NotNull(message = "版本ID不能为空")
     private Long versionId;
+
+    @Schema(description = "恢复原因")
     private String reason;
 }

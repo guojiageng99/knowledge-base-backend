@@ -8,8 +8,10 @@ import com.knowledge.base.document.service.DocumentVersionService;
 import com.knowledge.base.document.vo.DocumentVersionVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,6 +25,8 @@ import java.util.Objects;
 @RestController
 @RequestMapping("/documents/{documentId}/versions")
 @RequiredArgsConstructor
+@Slf4j
+@Tag(name = "文档版本管理", description = "文档版本管理接口")
 public class DocumentVersionController {
 
     private final DocumentVersionService documentVersionService;
@@ -33,6 +37,7 @@ public class DocumentVersionController {
             @Parameter(description = "文档ID", required = true) @PathVariable Long documentId,
             @Parameter(description = "当前页") @RequestParam(defaultValue = "1") Long current,
             @Parameter(description = "每页大小") @RequestParam(defaultValue = "10") Long size) {
+        log.info("获取文档版本列表请求：documentId={}, current={}, size={}", documentId, current, size);
         return Result.success(documentVersionService.getVersionList(documentId, current, size));
     }
 
@@ -41,6 +46,7 @@ public class DocumentVersionController {
     public Result<DocumentVersionVO> getVersionDetail(
             @Parameter(description = "文档ID", required = true) @PathVariable Long documentId,
             @Parameter(description = "版本ID", required = true) @PathVariable Long versionId) {
+        log.info("获取文档版本详情请求：documentId={}, versionId={}", documentId, versionId);
         DocumentVersionVO version = documentVersionService.getVersionDetail(versionId);
         assertDocumentVersion(documentId, version);
         return Result.success(version);
@@ -51,6 +57,7 @@ public class DocumentVersionController {
     public Result<Boolean> restoreVersion(
             @Parameter(description = "文档ID", required = true) @PathVariable Long documentId,
             @Valid @RequestBody DocumentVersionRestoreDTO dto) {
+        log.info("恢复文档版本请求：documentId={}, versionId={}", documentId, dto.getVersionId());
         return Result.success("恢复版本成功", documentVersionService.restoreVersion(documentId, dto, 1L));
     }
 
@@ -60,6 +67,7 @@ public class DocumentVersionController {
             @Parameter(description = "文档ID", required = true) @PathVariable Long documentId,
             @Parameter(description = "版本1 ID", required = true) @RequestParam Long versionId1,
             @Parameter(description = "版本2 ID", required = true) @RequestParam Long versionId2) {
+        log.info("对比文档版本请求：documentId={}, versionId1={}, versionId2={}", documentId, versionId1, versionId2);
         assertDocumentVersion(documentId, documentVersionService.getVersionDetail(versionId1));
         assertDocumentVersion(documentId, documentVersionService.getVersionDetail(versionId2));
         return Result.success(documentVersionService.compareVersions(versionId1, versionId2));
