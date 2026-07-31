@@ -40,6 +40,8 @@ public class UnifiedResponseFilter implements GlobalFilter, Ordered {
                     String source = new String(bytes, StandardCharsets.UTF_8);
                     String wrapped = wrapResponse(source);
                     byte[] output = wrapped.getBytes(StandardCharsets.UTF_8);
+                    // The body is rewritten, so the upstream length must not be retained.
+                    getDelegate().getHeaders().remove(HttpHeaders.CONTENT_LENGTH);
                     getDelegate().getHeaders().setContentLength(output.length);
                     log.info("Gateway response => uri={}, status={}, body={}", exchange.getRequest().getURI(), getStatusCode(), wrapped);
                     return super.writeWith(Mono.just(getDelegate().bufferFactory().wrap(output)));
