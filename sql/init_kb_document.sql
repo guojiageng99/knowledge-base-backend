@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS kb_document (
     id BIGINT NOT NULL COMMENT 'Document ID',
     title VARCHAR(200) NOT NULL COMMENT 'Document title',
     content LONGTEXT NOT NULL COMMENT 'Document content',
+    content_id VARCHAR(64) DEFAULT NULL COMMENT 'MongoDB content ID',
     summary TEXT DEFAULT NULL COMMENT 'Document summary',
     document_type INT NOT NULL DEFAULT 1 COMMENT '1 article, 2 file',
     file_path VARCHAR(500) DEFAULT NULL,

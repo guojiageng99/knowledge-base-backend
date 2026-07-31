@@ -38,6 +38,9 @@ spring:
         login-username: admin
         login-password: admin
   data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/knowledge_base?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000}
+      auto-index-creation: true
     redis:
       host: localhost
       port: 6379

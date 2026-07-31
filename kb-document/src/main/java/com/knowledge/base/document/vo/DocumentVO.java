@@ -29,6 +29,7 @@ public class DocumentVO implements Serializable {
     private LocalDateTime publishTime;
     private Long authorId;
     private String authorName;
+    private AuthorVO author;
     private String coverImage;
     private Integer source;
     private String sourceUrl;

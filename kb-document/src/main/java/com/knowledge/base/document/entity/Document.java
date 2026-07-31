@@ -15,6 +15,7 @@ public class Document extends BaseEntity {
     private String title;
     private String summary;
     private String content;
+    private String contentId;
     private Integer documentType;
     private String filePath;
     private Long fileSize;

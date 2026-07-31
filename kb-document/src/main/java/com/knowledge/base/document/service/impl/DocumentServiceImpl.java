@@ -14,11 +14,15 @@ import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.entity.DocumentTag;
 import com.knowledge.base.document.entity.Tag;
+import com.knowledge.base.document.entity.mongodb.DocumentContent;
 import com.knowledge.base.document.mapper.DocumentTagMapper;
 import com.knowledge.base.document.mapper.DocumentMapper;
 import com.knowledge.base.document.mapper.TagMapper;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.DocumentVersionService;
+import com.knowledge.base.document.service.DocumentContentService;
+import com.knowledge.base.document.utils.UserContext;
+import com.knowledge.base.document.vo.AuthorVO;
 import com.knowledge.base.document.vo.DocumentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +51,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final DocumentTagMapper documentTagMapper;
     private final TagMapper tagMapper;
     private final DocumentVersionService documentVersionService;
+    private final DocumentContentService documentContentService;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -73,14 +78,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         document.setLikeCount(0L);
         document.setFavoriteCount(0L);
         document.setCommentCount(0L);
-        document.setAuthorId(1L);
-        document.setAuthorName("System Administrator");
+        document.setAuthorId(UserContext.getCurrentUserId() == null ? 1L : UserContext.getCurrentUserId());
+        document.setAuthorName(UserContext.getCurrentUserName() == null ? "System Administrator" : UserContext.getCurrentUserName());
         if (Objects.equals(document.getStatus(), 1)) {
             document.setPublishTime(LocalDateTime.now());
         }
         if (documentMapper.insert(document) <= 0) {
             throw new BusinessException("Failed to create document");
         }
+        saveContent(document, dto.getContent());
         if (dto.getTagIds() != null) {
             addTagsToDocument(document.getId(), dto.getTagIds());
         }
@@ -94,6 +100,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (dto.getId() == null) throw new BusinessException("Document ID is required");
         Document existing = requireDocument(dto.getId());
         Document document = BeanUtil.copyProperties(dto, Document.class);
+        updateContent(existing, document, dto.getContent());
         if (Objects.equals(existing.getStatus(), 0) && Objects.equals(dto.getStatus(), 1)) {
             document.setPublishTime(LocalDateTime.now());
         }
@@ -111,14 +118,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     @Transactional(rollbackFor = Exception.class)
     public Boolean deleteDocument(Long documentId) {
         if (documentId == null) throw new BusinessException("Document ID is required");
-        requireDocument(documentId);
+        Document document = requireDocument(documentId);
+        deleteContent(document);
         clearDocumentTags(documentId);
         return documentMapper.deleteById(documentId) > 0;
     }
 
     @Override
     public DocumentVO getDocumentById(Long documentId) {
-        return BeanUtil.copyProperties(requireDocument(documentId), DocumentVO.class);
+        return toVO(requireDocument(documentId), true);
     }
 
     @Override
@@ -127,7 +135,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         Document document = requireDocument(documentId);
         documentMapper.incrementViewCount(documentId);
         document.setViewCount(document.getViewCount() + 1);
-        return BeanUtil.copyProperties(document, DocumentVO.class);
+        return toVO(document, true);
     }
 
     @Override
@@ -141,7 +149,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
                         .or().like(Document::getTags, keyword))
                 .orderByDesc(Document::getIsTop).orderByDesc(Document::getSort).orderByDesc(Document::getPublishTime);
         return documentMapper.selectPage(new Page<Document>(current, size), query)
-                .convert(document -> BeanUtil.copyProperties(document, DocumentVO.class));
+                .convert(document -> toVO(document, false));
     }
 
     @Override
@@ -205,6 +213,77 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     private Integer defaultValue(Integer value, int defaultValue) { return value == null ? defaultValue : value; }
+
+    private void saveContent(Document document, String content) {
+        if (!StringUtils.hasText(content)) {
+            return;
+        }
+        try {
+            String contentId = documentContentService.saveContent(document.getId(), content);
+            Document update = new Document();
+            update.setId(document.getId());
+            update.setContentId(contentId);
+            // Keep the relational column for historical versions and MongoDB outage fallback.
+            update.setContent(content);
+            documentMapper.updateById(update);
+            document.setContentId(contentId);
+        } catch (RuntimeException exception) {
+            log.warn("MongoDB content save failed for document {}. MySQL content remains available.", document.getId());
+        }
+    }
+
+    private void updateContent(Document existing, Document update, String content) {
+        if (content == null) {
+            return;
+        }
+        try {
+            if (StringUtils.hasText(existing.getContentId())) {
+                update.setContentId(documentContentService.updateContent(existing.getId(), content));
+            } else {
+                String contentId = documentContentService.saveContent(existing.getId(), content);
+                update.setContentId(contentId);
+            }
+        } catch (RuntimeException exception) {
+            log.warn("MongoDB content update failed for document {}. MySQL content remains available.", existing.getId());
+        }
+        update.setContent(content);
+    }
+
+    private void deleteContent(Document document) {
+        if (StringUtils.hasText(document.getContentId())) {
+            try {
+                documentContentService.deleteContent(document.getContentId());
+            } catch (RuntimeException exception) {
+                log.warn("MongoDB content deletion failed for document {}.", document.getId());
+            }
+        }
+    }
+
+    private DocumentVO toVO(Document document, boolean includeContent) {
+        DocumentVO result = BeanUtil.copyProperties(document, DocumentVO.class);
+        result.setAuthor(buildAuthorVO(document));
+        if (includeContent && StringUtils.hasText(document.getContentId())) {
+            try {
+                DocumentContent content = documentContentService.getContentById(document.getContentId());
+                if (content != null) {
+                    result.setContent(content.getContent());
+                }
+            } catch (RuntimeException exception) {
+                log.warn("MongoDB content lookup failed for document {}. Falling back to MySQL content.", document.getId());
+            }
+        }
+        return result;
+    }
+
+    private AuthorVO buildAuthorVO(Document document) {
+        AuthorVO author = new AuthorVO();
+        author.setId(document.getAuthorId());
+        author.setUsername(document.getAuthorName());
+        author.setEmail("");
+        author.setAvatar("");
+        author.setPosition("");
+        return author;
+    }
 
     private String buildChangeDescription(Document oldDocument, Document newDocument) {
         List<String> changes = new ArrayList<>();
