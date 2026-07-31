@@ -47,7 +47,8 @@ knife4j:
     production: false
 
 jwt:
-  secret: knowledge-base-secret-key-for-jwt-token-generation-must-be-long-enough
+  # JwtConfig decodes this value as Base64 before signing tokens.
+  secret: aW52ZW50ZW1lLWtub3dsZWRnZS1iYXNlLXNlY3JldC1rZXktZm9yLWp3dC10b2tlbi1nZW5lcmF0aW9uLW11c3QtYmUtbG9uZy1lbm91Z2g=
   expiration: 7200
   refresh-expiration: 604800
   issuer: knowledge-base

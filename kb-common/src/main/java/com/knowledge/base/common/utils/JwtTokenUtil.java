@@ -19,20 +19,20 @@ public class JwtTokenUtil {
     private JwtConfig jwtConfig;
 
     public String generateAccessToken(Long userId) {
-        return generateToken(userId, jwtConfig.getExpiration() * 1000);
+        return generateToken(userId, jwtConfig.getExpiration() * 1000, "access");
     }
 
     public String generateRefreshToken(Long userId) {
-        return generateToken(userId, jwtConfig.getRefreshExpiration() * 1000);
+        return generateToken(userId, jwtConfig.getRefreshExpiration() * 1000, "refresh");
     }
 
-    private String generateToken(Long userId, Long expiration) {
+    private String generateToken(Long userId, Long expiration, String tokenType) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
-        claims.put("type", "access");
+        claims.put("type", tokenType);
 
         return Jwts.builder()
                 .claims(claims)
@@ -72,5 +72,32 @@ public class JwtTokenUtil {
     public boolean validateToken(String token) {
         Claims claims = parseToken(token);
         return claims != null && claims.getExpiration().after(new Date());
+    }
+
+    public boolean isAccessToken(String token) {
+        return isTokenOfType(token, "access");
+    }
+
+    public boolean isRefreshToken(String token) {
+        return isTokenOfType(token, "refresh");
+    }
+
+    private boolean isTokenOfType(String token, String expectedType) {
+        Claims claims = parseToken(token);
+        return claims != null && claims.getExpiration().after(new Date())
+                && expectedType.equals(claims.get("type"));
+    }
+
+    public boolean isTokenExpiringSoon(String token, int thresholdSeconds) {
+        Claims claims = parseToken(token);
+        return claims == null || claims.getExpiration().getTime() - System.currentTimeMillis() < thresholdSeconds * 1000L;
+    }
+
+    public String refreshToken(String refreshToken) {
+        Claims claims = parseToken(refreshToken);
+        if (claims == null || !"refresh".equals(claims.get("type"))) {
+            throw new IllegalArgumentException("刷新Token无效");
+        }
+        return generateAccessToken(getUserIdFromToken(refreshToken));
     }
 }

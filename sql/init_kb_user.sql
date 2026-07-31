@@ -2,6 +2,30 @@ CREATE DATABASE IF NOT EXISTS kb_user DEFAULT CHARACTER SET utf8mb4 COLLATE utf8
 
 USE kb_user;
 
+CREATE TABLE IF NOT EXISTS kb_user (
+  id BIGINT NOT NULL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(100) DEFAULT NULL,
+  phone VARCHAR(20) DEFAULT NULL,
+  avatar VARCHAR(500) DEFAULT NULL,
+  real_name VARCHAR(50) DEFAULT NULL,
+  department VARCHAR(100) DEFAULT NULL,
+  position VARCHAR(100) DEFAULT NULL,
+  status TINYINT NOT NULL DEFAULT 1,
+  last_login_time DATETIME DEFAULT NULL,
+  last_login_ip VARCHAR(50) DEFAULT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  create_by BIGINT DEFAULT NULL,
+  update_by BIGINT DEFAULT NULL,
+  deleted TINYINT NOT NULL DEFAULT 0,
+  UNIQUE KEY uk_kb_user_username (username),
+  KEY idx_kb_user_email (email),
+  KEY idx_kb_user_status (status),
+  KEY idx_kb_user_deleted (deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='authentication user table';
+
 CREATE TABLE IF NOT EXISTS sys_user (
   id BIGINT NOT NULL PRIMARY KEY,
   username VARCHAR(64) NOT NULL COMMENT 'username',
