@@ -12,7 +12,11 @@ import com.knowledge.base.common.exception.BusinessException;
 import com.knowledge.base.common.utils.SnowflakeIdGenerator;
 import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.entity.Document;
+import com.knowledge.base.document.entity.DocumentTag;
+import com.knowledge.base.document.entity.Tag;
+import com.knowledge.base.document.mapper.DocumentTagMapper;
 import com.knowledge.base.document.mapper.DocumentMapper;
+import com.knowledge.base.document.mapper.TagMapper;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.vo.DocumentVO;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,8 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -36,6 +42,8 @@ import java.util.Objects;
 public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> implements DocumentService {
 
     private final DocumentMapper documentMapper;
+    private final DocumentTagMapper documentTagMapper;
+    private final TagMapper tagMapper;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -70,6 +78,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (documentMapper.insert(document) <= 0) {
             throw new BusinessException("Failed to create document");
         }
+        if (dto.getTagIds() != null) {
+            addTagsToDocument(document.getId(), dto.getTagIds());
+        }
         return document.getId();
     }
 
@@ -82,13 +93,19 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (Objects.equals(existing.getStatus(), 0) && Objects.equals(dto.getStatus(), 1)) {
             document.setPublishTime(LocalDateTime.now());
         }
-        return documentMapper.updateById(document) > 0;
+        boolean updated = documentMapper.updateById(document) > 0;
+        if (dto.getTagIds() != null) {
+            addTagsToDocument(dto.getId(), dto.getTagIds());
+        }
+        return updated;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Boolean deleteDocument(Long documentId) {
         if (documentId == null) throw new BusinessException("Document ID is required");
+        requireDocument(documentId);
+        clearDocumentTags(documentId);
         return documentMapper.deleteById(documentId) > 0;
     }
 
@@ -156,6 +173,14 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     @Transactional(rollbackFor = Exception.class)
     public Boolean archiveDocument(Long documentId) { return updateStatus(documentId, 2, false); }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean addTagsToDocument(Long documentId, List<Long> tagIds) {
+        requireDocument(documentId);
+        replaceDocumentTags(documentId, tagIds);
+        return true;
+    }
+
     private Document requireDocument(Long documentId) {
         if (documentId == null) throw new BusinessException("Document ID is required");
         Document document = documentMapper.selectById(documentId);
@@ -173,4 +198,55 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     private Integer defaultValue(Integer value, int defaultValue) { return value == null ? defaultValue : value; }
+
+    private void replaceDocumentTags(Long documentId, List<Long> requestedTagIds) {
+        Set<Long> newTagIds = requestedTagIds == null ? Set.of() : new LinkedHashSet<>(requestedTagIds);
+        List<DocumentTag> existingRelations = documentTagMapper.selectList(new LambdaQueryWrapper<DocumentTag>()
+                .eq(DocumentTag::getDocumentId, documentId));
+        Set<Long> existingTagIds = existingRelations.stream().map(DocumentTag::getTagId).collect(java.util.stream.Collectors.toSet());
+
+        for (Long tagId : newTagIds) {
+            Tag tag = tagMapper.selectById(tagId);
+            if (tag == null || !Integer.valueOf(1).equals(tag.getStatus())) {
+                throw new BusinessException("Tag does not exist or is disabled: " + tagId);
+            }
+        }
+        for (DocumentTag relation : existingRelations) {
+            if (!newTagIds.contains(relation.getTagId())) {
+                documentTagMapper.deleteById(relation.getId());
+                tagMapper.decrementDocumentCount(relation.getTagId());
+            }
+        }
+        for (Long tagId : newTagIds) {
+            if (!existingTagIds.contains(tagId)) {
+                DocumentTag relation = new DocumentTag();
+                relation.setId(SnowflakeIdGenerator.nextId());
+                relation.setDocumentId(documentId);
+                relation.setTagId(tagId);
+                relation.setCreateTime(LocalDateTime.now());
+                documentTagMapper.insert(relation);
+                tagMapper.incrementDocumentCount(tagId);
+            }
+        }
+        updateDocumentTagNames(documentId, newTagIds);
+    }
+
+    private void clearDocumentTags(Long documentId) {
+        List<DocumentTag> relations = documentTagMapper.selectList(new LambdaQueryWrapper<DocumentTag>()
+                .eq(DocumentTag::getDocumentId, documentId));
+        for (DocumentTag relation : relations) {
+            documentTagMapper.deleteById(relation.getId());
+            tagMapper.decrementDocumentCount(relation.getTagId());
+        }
+    }
+
+    private void updateDocumentTagNames(Long documentId, Set<Long> tagIds) {
+        String tagNames = tagIds.isEmpty() ? null : tagMapper.selectBatchIds(tagIds).stream()
+                .map(Tag::getTagName)
+                .collect(java.util.stream.Collectors.joining(","));
+        Document update = new Document();
+        update.setId(documentId);
+        update.setTags(tagNames);
+        documentMapper.updateById(update);
+    }
 }

@@ -7,6 +7,8 @@ import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.vo.DocumentVO;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface DocumentService extends IService<Document> {
 
     Long createDocument(DocumentDTO documentDTO);
@@ -20,4 +22,5 @@ public interface DocumentService extends IService<Document> {
     Boolean favoriteDocument(Long documentId);
     Boolean publishDocument(Long documentId);
     Boolean archiveDocument(Long documentId);
+    Boolean addTagsToDocument(Long documentId, List<Long> tagIds);
 }

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 public class DocumentDTO implements Serializable {
@@ -22,6 +23,7 @@ public class DocumentDTO implements Serializable {
     private Long categoryId;
     @Size(max = 200, message = "Tags must not exceed 200 characters")
     private String tags;
+    private List<Long> tagIds;
     private Integer status;
     private Integer isTop;
     private Integer isRecommend;

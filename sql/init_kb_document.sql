@@ -71,17 +71,26 @@ CREATE TABLE IF NOT EXISTS kb_category (
 CREATE TABLE IF NOT EXISTS tb_tag (
     id BIGINT NOT NULL,
     tag_name VARCHAR(50) NOT NULL,
-    tag_code VARCHAR(50) DEFAULT NULL,
-    tag_type VARCHAR(20) DEFAULT 'USER',
+    tag_code VARCHAR(50) NOT NULL,
+    category_id BIGINT DEFAULT NULL,
+    tag_type TINYINT NOT NULL DEFAULT 1,
     color VARCHAR(20) DEFAULT NULL,
     icon VARCHAR(50) DEFAULT NULL,
     doc_count INT NOT NULL DEFAULT 0,
     status TINYINT NOT NULL DEFAULT 1,
+    version INT NOT NULL DEFAULT 0,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by BIGINT DEFAULT NULL,
+    update_by BIGINT DEFAULT NULL,
     deleted TINYINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_tag_code (tag_code)
+    UNIQUE KEY uk_tag_code (tag_code),
+    KEY idx_tag_name (tag_name),
+    KEY idx_category_id (category_id),
+    KEY idx_tag_type (tag_type),
+    KEY idx_status (status),
+    KEY idx_doc_count (doc_count)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Tags';
 
 CREATE TABLE IF NOT EXISTS tb_comment (
@@ -145,5 +154,7 @@ CREATE TABLE IF NOT EXISTS kb_document_tag (
     tag_id BIGINT NOT NULL,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_document_tag (document_id, tag_id)
+    UNIQUE KEY uk_document_tag (document_id, tag_id),
+    KEY idx_document_id (document_id),
+    KEY idx_tag_id (tag_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Document tags';
