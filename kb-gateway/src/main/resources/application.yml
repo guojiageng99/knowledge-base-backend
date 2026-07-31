@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: kb-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: kb-user-auth
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+        - id: kb-document
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/document/**
+        - id: kb-foundation
+          uri: http://localhost:8089
+          predicates:
+            - Path=/api/foundation/**
+
+logging:
+  level:
+    com.knowledge.base.gateway: INFO

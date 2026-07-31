@@ -1,10 +1,12 @@
 package com.knowledge.base.common.result;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -33,12 +35,20 @@ public class Result<T> implements Serializable {
         return new Result<>(ResultCode.SUCCESS.getCode(), ResultCode.SUCCESS.getMessage(), data);
     }
 
+    public static <T> Result<T> success(String message) {
+        return new Result<>(ResultCode.SUCCESS.getCode(), message, null);
+    }
+
     public static <T> Result<T> success(String message, T data) {
         return new Result<>(ResultCode.SUCCESS.getCode(), message, data);
     }
 
     public static <T> Result<T> error(ErrorCode errorCode) {
         return new Result<>(errorCode.getCode(), errorCode.getMessage(), null);
+    }
+
+    public static <T> Result<T> error() {
+        return new Result<>(ResultCode.ERROR.getCode(), ResultCode.ERROR.getMessage(), null);
     }
 
     public static <T> Result<T> error(ResultCode resultCode) {
@@ -51,5 +61,9 @@ public class Result<T> implements Serializable {
 
     public static <T> Result<T> error(Integer code, String message) {
         return new Result<>(code, message, null);
+    }
+
+    public static <T> Result<T> status(boolean flag) {
+        return flag ? success() : error();
     }
 }
