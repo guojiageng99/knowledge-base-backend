@@ -15,6 +15,10 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/document/**
+        - id: kb-file
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/file/**
         - id: kb-foundation
           uri: http://localhost:8089
           predicates:
