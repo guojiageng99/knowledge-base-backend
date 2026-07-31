@@ -97,9 +97,9 @@ CREATE TABLE IF NOT EXISTS tb_comment (
     id BIGINT NOT NULL,
     document_id BIGINT NOT NULL,
     content TEXT NOT NULL,
-    user_id BIGINT NOT NULL,
-    user_name VARCHAR(50) DEFAULT NULL,
-    user_avatar VARCHAR(500) DEFAULT NULL,
+    commenter_id BIGINT NOT NULL,
+    commenter_name VARCHAR(50) DEFAULT NULL,
+    commenter_avatar VARCHAR(500) DEFAULT NULL,
     parent_id BIGINT NOT NULL DEFAULT 0,
     root_id BIGINT NOT NULL DEFAULT 0,
     reply_to_user_id BIGINT DEFAULT NULL,
@@ -107,14 +107,31 @@ CREATE TABLE IF NOT EXISTS tb_comment (
     like_count INT NOT NULL DEFAULT 0,
     reply_count INT NOT NULL DEFAULT 0,
     status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by BIGINT DEFAULT NULL,
+    update_by BIGINT DEFAULT NULL,
     deleted TINYINT NOT NULL DEFAULT 0,
     PRIMARY KEY (id),
     KEY idx_document_id (document_id),
-    KEY idx_user_id (user_id),
-    KEY idx_parent_id (parent_id)
+    KEY idx_parent_id (parent_id),
+    KEY idx_root_id (root_id),
+    KEY idx_commenter_id (commenter_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Comments';
+
+CREATE TABLE IF NOT EXISTS tb_like (
+    id BIGINT NOT NULL,
+    target_id BIGINT NOT NULL,
+    target_type TINYINT NOT NULL COMMENT '1 document, 2 comment',
+    user_id BIGINT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_target_user_type (target_id, user_id, target_type),
+    KEY idx_target_id (target_id),
+    KEY idx_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Likes';
 
 CREATE TABLE IF NOT EXISTS tb_document_version (
     id BIGINT NOT NULL,
