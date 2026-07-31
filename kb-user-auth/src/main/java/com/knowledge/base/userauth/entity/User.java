@@ -1,6 +1,7 @@
 package com.knowledge.base.userauth.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.knowledge.base.common.config.BaseEntity;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -23,4 +24,7 @@ public class User extends BaseEntity {
     private Integer status;
     private LocalDateTime lastLoginTime;
     private String lastLoginIp;
+
+    @TableField(exist = false)
+    private Integer isDeleted;
 }

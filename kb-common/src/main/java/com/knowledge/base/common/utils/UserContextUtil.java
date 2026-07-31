@@ -74,4 +74,8 @@ public class UserContextUtil {
     public static void clearContext() {
         clear();
     }
+
+    public static boolean isLoggedIn() {
+        return getUserId() != null;
+    }
 }

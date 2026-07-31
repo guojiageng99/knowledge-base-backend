@@ -2,6 +2,7 @@ package com.knowledge.base.userauth.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.knowledge.base.common.result.Result;
+import com.knowledge.base.userauth.filter.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

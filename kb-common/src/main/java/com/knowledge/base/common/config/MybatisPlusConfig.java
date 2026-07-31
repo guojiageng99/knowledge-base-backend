@@ -1,4 +1,4 @@
-package com.knowledge.base.userauth.config;
+package com.knowledge.base.common.config;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;

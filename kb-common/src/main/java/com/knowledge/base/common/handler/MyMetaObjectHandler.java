@@ -17,6 +17,7 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
         log.debug("Start insert fill");
         this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
         this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+        this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
 
         Long userId = UserContextUtil.getCurrentUserId();
         if (userId != null) {

@@ -1,4 +1,4 @@
-package com.knowledge.base.userauth.config;
+package com.knowledge.base.userauth.filter;
 
 import com.knowledge.base.common.utils.JwtTokenUtil;
 import com.knowledge.base.common.utils.UserContextUtil;
@@ -55,7 +55,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.endsWith("/auth/login") || path.endsWith("/auth/refresh") || path.endsWith("/auth/register") || path.startsWith("/api/auth/public/")
-                || "OPTIONS".equals(request.getMethod());
+        return path.endsWith("/auth/login") || path.endsWith("/auth/refresh") || path.endsWith("/auth/register")
+                || path.startsWith("/api/auth/public/") || "OPTIONS".equals(request.getMethod());
     }
 }
