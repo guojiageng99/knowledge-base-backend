@@ -157,14 +157,16 @@ CREATE TABLE IF NOT EXISTS tb_document_review (
     document_id BIGINT NOT NULL,
     reviewer_id BIGINT NOT NULL,
     reviewer_name VARCHAR(50) DEFAULT NULL,
-    review_result INT NOT NULL,
+    review_result TINYINT DEFAULT NULL,
     review_comment TEXT DEFAULT NULL,
     before_status INT DEFAULT NULL,
     reviewed_at DATETIME DEFAULT NULL,
     review_round INT NOT NULL DEFAULT 1,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
-    KEY idx_document_id (document_id)
+    KEY idx_document_id (document_id),
+    KEY idx_reviewer_id (reviewer_id),
+    KEY idx_reviewed_at (reviewed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Document reviews';
 
 CREATE TABLE IF NOT EXISTS kb_document_tag (
