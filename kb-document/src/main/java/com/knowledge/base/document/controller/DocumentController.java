@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.service.DocumentService;
+import com.knowledge.base.document.service.PdfExportService;
 import com.knowledge.base.document.vo.DocumentVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/documents")
@@ -24,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class DocumentController {
 
     private final DocumentService documentService;
+    private final PdfExportService pdfExportService;
 
     @PostMapping
     public Result<Long> createDocument(@Valid @RequestBody DocumentDTO documentDTO) {
@@ -88,6 +94,21 @@ public class DocumentController {
     @PostMapping("/{documentId}/favorite")
     public Result<Boolean> favoriteDocument(@PathVariable Long documentId) {
         return Result.success("Document favorited successfully", documentService.favoriteDocument(documentId));
+    }
+
+    @GetMapping("/{documentId}/export-pdf")
+    public Result<String> exportPdf(@PathVariable Long documentId) {
+        return Result.success(pdfExportService.exportDocumentToPdf(documentId));
+    }
+
+    @GetMapping("/{documentId}/download-pdf")
+    public void downloadPdf(@PathVariable Long documentId, HttpServletResponse response) throws IOException {
+        DocumentVO document = documentService.getDocumentById(documentId);
+        byte[] bytes = pdfExportService.exportDocumentToPdfBytes(documentId);
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''"
+                + URLEncoder.encode(pdfExportService.generatePdfFileName(documentId, document.getTitle()), StandardCharsets.UTF_8));
+        response.getOutputStream().write(bytes);
     }
 
     @PutMapping("/{documentId}/publish")
