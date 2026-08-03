@@ -90,6 +90,8 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
 file:
+  service:
+    url: ${FILE_SERVICE_URL:http://localhost:8084/api/file}
   upload:
     path: ./uploads
     allowed-types:

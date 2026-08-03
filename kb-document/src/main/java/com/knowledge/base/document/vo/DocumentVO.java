@@ -21,6 +21,7 @@ public class DocumentVO implements Serializable {
     private String categoryName;
     private String tags;
     private Integer status;
+    private Integer isPublic;
     private Integer isTop;
     private Integer isRecommend;
     private Long viewCount;

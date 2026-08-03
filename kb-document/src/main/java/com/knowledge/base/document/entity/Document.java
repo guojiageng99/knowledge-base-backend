@@ -25,6 +25,7 @@ public class Document extends BaseEntity {
     private Long categoryId;
     private String tags;
     private Integer status;
+    private Integer isPublic;
     private Integer isTop;
     private Integer isRecommend;
     private Long viewCount;

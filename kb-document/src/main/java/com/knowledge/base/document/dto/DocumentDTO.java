@@ -25,6 +25,7 @@ public class DocumentDTO implements Serializable {
     private String tags;
     private List<Long> tagIds;
     private Integer status;
+    private Integer isPublic;
     private Integer isTop;
     private Integer isRecommend;
     @Size(max = 500, message = "Cover image URL must not exceed 500 characters")

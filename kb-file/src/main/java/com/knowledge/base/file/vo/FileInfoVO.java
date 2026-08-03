@@ -13,12 +13,15 @@ public class FileInfoVO {
 
     private Long id;
     private String originalName;
+    private String storedName;
     private Long fileSize;
     private String fileSizeReadable;
     private String fileType;
     private String mimeType;
     private String fileUrl;
     private String previewUrl;
+    private String convertedUrl;
+    private String newUrl;
     private Long uploaderId;
     private String uploaderName;
     private Integer accessLevel;

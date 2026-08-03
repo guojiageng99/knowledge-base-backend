@@ -52,6 +52,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final TagMapper tagMapper;
     private final DocumentVersionService documentVersionService;
     private final DocumentContentService documentContentService;
+    private final com.knowledge.base.document.service.FileUploadService fileUploadService;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -69,6 +70,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         document.setId(SnowflakeIdGenerator.nextId());
         document.setDocumentType(defaultValue(document.getDocumentType(), 1));
         document.setStatus(defaultValue(document.getStatus(), 0));
+        document.setIsPublic(defaultValue(document.getIsPublic(), 1));
         document.setIsTop(defaultValue(document.getIsTop(), 0));
         document.setIsRecommend(defaultValue(document.getIsRecommend(), 0));
         document.setSource(defaultValue(document.getSource(), 1));
@@ -228,6 +230,11 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             }
         }
         return document.getContent();
+    }
+
+    @Override
+    public String uploadImageFromUrl(String imageUrl) {
+        return fileUploadService.uploadImageFromUrl(imageUrl);
     }
 
     private Document requireDocument(Long documentId) {

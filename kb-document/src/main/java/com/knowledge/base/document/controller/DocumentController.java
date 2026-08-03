@@ -75,6 +75,11 @@ public class DocumentController {
         return Result.success(documentService.getDocumentContent(documentId));
     }
 
+    @PostMapping("/upload-image-from-url")
+    public Result<String> uploadImageFromUrl(@RequestParam String imageUrl) {
+        return Result.success(documentService.uploadImageFromUrl(imageUrl));
+    }
+
     @PostMapping("/{documentId}/like")
     public Result<Boolean> likeDocument(@PathVariable Long documentId) {
         return Result.success("Document liked successfully", documentService.likeDocument(documentId));

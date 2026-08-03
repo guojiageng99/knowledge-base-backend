@@ -1,11 +1,9 @@
 package com.knowledge.base.document.service.impl;
 
 import com.knowledge.base.document.entity.mongodb.DocumentContent;
+import com.knowledge.base.document.repository.mongodb.DocumentContentRepository;
 import com.knowledge.base.document.service.DocumentContentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,7 +12,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class DocumentContentServiceImpl implements DocumentContentService {
 
-    private final MongoTemplate mongoTemplate;
+    private final DocumentContentRepository documentContentRepository;
 
     @Override
     public String saveContent(Long documentId, String content) {
@@ -22,31 +20,30 @@ public class DocumentContentServiceImpl implements DocumentContentService {
         documentContent.setDocumentId(documentId);
         documentContent.setContent(content);
         documentContent.setWordCount(content == null ? 0 : content.length());
-        documentContent.setCreateTime(LocalDateTime.now());
-        documentContent.setUpdateTime(documentContent.getCreateTime());
-        return mongoTemplate.save(documentContent).getId();
+        documentContent.setCreatedAt(LocalDateTime.now());
+        documentContent.setUpdatedAt(documentContent.getCreatedAt());
+        return documentContentRepository.save(documentContent).getId();
     }
 
     @Override
     public DocumentContent getContentById(String contentId) {
-        return mongoTemplate.findById(contentId, DocumentContent.class);
+        return documentContentRepository.findById(contentId).orElse(null);
     }
 
     @Override
     public String updateContent(Long documentId, String content) {
-        DocumentContent documentContent = mongoTemplate.findOne(
-                Query.query(Criteria.where("documentId").is(documentId)), DocumentContent.class);
+        DocumentContent documentContent = documentContentRepository.findByDocumentId(documentId).orElse(null);
         if (documentContent == null) {
             return saveContent(documentId, content);
         }
         documentContent.setContent(content);
         documentContent.setWordCount(content == null ? 0 : content.length());
-        documentContent.setUpdateTime(LocalDateTime.now());
-        return mongoTemplate.save(documentContent).getId();
+        documentContent.setUpdatedAt(LocalDateTime.now());
+        return documentContentRepository.save(documentContent).getId();
     }
 
     @Override
     public void deleteContent(String contentId) {
-        mongoTemplate.remove(Query.query(Criteria.where("_id").is(contentId)), DocumentContent.class);
+        documentContentRepository.deleteById(contentId);
     }
 }
