@@ -17,6 +17,7 @@ public class CategoryVO {
 
     @Schema(description = "分类ID")
     private Long id;
+    private String code;
 
     @Schema(description = "分类名称")
     private String name;
@@ -29,6 +30,10 @@ public class CategoryVO {
 
     @Schema(description = "排序号")
     private Integer sortOrder;
+    private Integer status;
+    private String remark;
+    private java.time.LocalDateTime createTime;
+    private java.time.LocalDateTime updateTime;
 
     @Schema(description = "图标")
     private String icon;

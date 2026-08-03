@@ -1,31 +1,40 @@
 package com.knowledge.base.userauth.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
-import com.knowledge.base.userauth.entity.User;
+import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.service.UserService;
-import jakarta.annotation.Resource;
+import com.knowledge.base.userauth.vo.UserVO;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping({"/users", "/user"})
+@RequiredArgsConstructor
 public class UserController {
-
-    @Resource
-    private UserService userService;
-
-    @GetMapping("/{id}")
-    public Result<User> getById(@PathVariable Long id) {
-        return Result.success(userService.getById(id));
-    }
+    private final UserService userService;
 
     @PostMapping
-    public Result<Boolean> createUser(@Valid @RequestBody User user) {
-        return Result.success(userService.createUser(user));
+    public Result<Long> createUser(@Valid @RequestBody UserDTO dto) { return Result.success("User created successfully", userService.createUser(dto)); }
+
+    @PutMapping
+    public Result<Boolean> updateUser(@Valid @RequestBody UserDTO dto) { return Result.success("User updated successfully", userService.updateUser(dto)); }
+
+    @DeleteMapping("/{userId}")
+    public Result<Boolean> deleteUser(@PathVariable Long userId) { return Result.success("User deleted successfully", userService.deleteUser(userId)); }
+
+    @GetMapping("/{userId}")
+    public Result<UserVO> getUserById(@PathVariable Long userId) { return Result.success(userService.getUserById(userId)); }
+
+    @GetMapping("/page")
+    public Result<IPage<UserVO>> pageUsers(@RequestParam(defaultValue = "1") Long current, @RequestParam(defaultValue = "10") Long size, @RequestParam(required = false) String keyword, @RequestParam(required = false) String role, @RequestParam(required = false) Integer status) {
+        return Result.success(userService.pageUsers(current, size, keyword, role, status));
     }
+
+    @PutMapping("/{userId}/password/reset")
+    public Result<Boolean> resetPassword(@PathVariable Long userId, @RequestParam String newPassword) { return Result.success(userService.resetPassword(userId, newPassword)); }
+
+    @PutMapping("/password/change")
+    public Result<Boolean> changePassword(@RequestParam String oldPassword, @RequestParam String newPassword) { return Result.success(userService.changePassword(oldPassword, newPassword)); }
 }

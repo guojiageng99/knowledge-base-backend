@@ -18,4 +18,8 @@ public class UserVO implements Serializable {
     private String department;
     private String position;
     private Integer status;
+    private java.time.LocalDateTime lastLoginTime;
+    private String lastLoginIp;
+    private java.time.LocalDateTime createTime;
+    private java.time.LocalDateTime updateTime;
 }

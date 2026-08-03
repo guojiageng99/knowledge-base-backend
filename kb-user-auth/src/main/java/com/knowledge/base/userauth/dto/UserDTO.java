@@ -21,6 +21,9 @@ public class UserDTO implements Serializable {
     private String password;
     @Size(max = 50, message = "昵称长度不能超过50个字符")
     private String nickname;
+    private String realName;
+    private String department;
+    private String position;
     @Email(message = "邮箱格式不正确")
     private String email;
     @Pattern(regexp = "^1[3-9]\\d{9}$", message = "手机号格式不正确")

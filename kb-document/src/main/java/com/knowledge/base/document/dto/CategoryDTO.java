@@ -17,6 +17,9 @@ public class CategoryDTO {
     @Schema(description = "分类名称")
     private String name;
 
+    @Size(max = 100, message = "分类编码不能超过100个字符")
+    private String code;
+
     @Size(max = 500, message = "分类描述不能超过500个字符")
     @Schema(description = "分类描述")
     private String description;
@@ -26,6 +29,11 @@ public class CategoryDTO {
 
     @Schema(description = "排序号")
     private Integer sortOrder;
+
+    private Integer status;
+
+    @Size(max = 500, message = "备注不能超过500个字符")
+    private String remark;
 
     @Schema(description = "图标")
     private String icon;

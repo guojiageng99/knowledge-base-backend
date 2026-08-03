@@ -36,12 +36,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         category.setId(SnowflakeIdGenerator.nextId());
         category.setParentId(parentId);
         category.setCategoryName(categoryDTO.getName());
-        category.setCategoryCode(generateCategoryCode(categoryDTO.getName()));
+        category.setCategoryCode(StringUtils.hasText(categoryDTO.getCode()) ? categoryDTO.getCode() : generateCategoryCode(categoryDTO.getName()));
         category.setDescription(categoryDTO.getDescription());
         category.setIcon(categoryDTO.getIcon());
         category.setSort(categoryDTO.getSortOrder() == null ? 0 : categoryDTO.getSortOrder());
-        category.setStatus(1);
+        category.setStatus(categoryDTO.getStatus() == null ? 1 : categoryDTO.getStatus());
         category.setDocumentCount(0);
+        category.setRemark(categoryDTO.getRemark());
         if (categoryMapper.insert(category) <= 0) {
             throw new BusinessException("Failed to create category");
         }
@@ -58,7 +59,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if (StringUtils.hasText(categoryDTO.getName())) {
             requireUniqueName(categoryDTO.getName(), categoryDTO.getId());
         }
-
         Long parentId = categoryDTO.getParentId();
         if (parentId != null) {
             validateMove(categoryDTO.getId(), parentId);
@@ -66,6 +66,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
         Category category = new Category();
         category.setId(existing.getId());
+        if (StringUtils.hasText(categoryDTO.getCode())) category.setCategoryCode(categoryDTO.getCode());
         if (StringUtils.hasText(categoryDTO.getName())) {
             category.setCategoryName(categoryDTO.getName());
         }
@@ -73,6 +74,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         category.setParentId(parentId == null ? null : normalizeParentId(parentId));
         category.setIcon(categoryDTO.getIcon());
         category.setSort(categoryDTO.getSortOrder());
+        category.setStatus(categoryDTO.getStatus());
+        category.setRemark(categoryDTO.getRemark());
         return categoryMapper.updateById(category) > 0;
     }
 
@@ -197,11 +200,16 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return CategoryVO.builder()
                 .id(category.getId())
                 .name(category.getCategoryName())
+                .code(category.getCategoryCode())
                 .description(category.getDescription())
                 .parentId(category.getParentId())
                 .sortOrder(category.getSort())
                 .icon(category.getIcon())
+                .status(category.getStatus())
+                .remark(category.getRemark())
                 .documentCount(category.getDocumentCount() == null ? 0L : category.getDocumentCount().longValue())
+                .createTime(category.getCreateTime())
+                .updateTime(category.getUpdateTime())
                 .build();
     }
 
