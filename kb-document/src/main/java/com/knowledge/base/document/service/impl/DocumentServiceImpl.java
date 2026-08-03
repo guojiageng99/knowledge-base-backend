@@ -21,6 +21,7 @@ import com.knowledge.base.document.mapper.TagMapper;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.DocumentVersionService;
 import com.knowledge.base.document.service.DocumentContentService;
+import com.knowledge.base.document.service.DocumentAccessService;
 import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.AuthorVO;
 import com.knowledge.base.document.vo.DocumentVO;
@@ -41,6 +42,7 @@ import java.util.Set;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @Slf4j
@@ -52,6 +54,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final TagMapper tagMapper;
     private final DocumentVersionService documentVersionService;
     private final DocumentContentService documentContentService;
+    private final DocumentAccessService documentAccessService;
     private final com.knowledge.base.document.service.FileUploadService fileUploadService;
 
     @Value("${file.upload.path:./uploads}")
@@ -137,6 +140,15 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         Document document = requireDocument(documentId);
         documentMapper.incrementViewCount(documentId);
         document.setViewCount(document.getViewCount() + 1);
+        Long userId = UserContext.getCurrentUserId();
+        String documentTitle = document.getTitle();
+        CompletableFuture.runAsync(() -> {
+            try {
+                documentAccessService.recordAccess(userId, documentId, documentTitle);
+            } catch (RuntimeException exception) {
+                log.warn("Failed to record document access for document {}", documentId, exception);
+            }
+        });
         return toVO(document, true);
     }
 

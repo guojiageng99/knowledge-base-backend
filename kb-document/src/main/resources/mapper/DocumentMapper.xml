@@ -11,6 +11,9 @@
     <update id="incrementFavoriteCount">
         UPDATE kb_document SET favorite_count = favorite_count + 1 WHERE id = #{documentId} AND deleted = 0
     </update>
+    <update id="decrementFavoriteCount">
+        UPDATE kb_document SET favorite_count = GREATEST(favorite_count - 1, 0) WHERE id = #{documentId} AND deleted = 0
+    </update>
     <update id="incrementCommentCount">
         UPDATE kb_document SET comment_count = comment_count + 1 WHERE id = #{documentId} AND deleted = 0
     </update>

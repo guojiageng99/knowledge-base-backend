@@ -1,5 +1,7 @@
 package com.knowledge.base.document.utils;
 
+import com.knowledge.base.common.utils.UserContextUtil;
+
 public final class UserContext {
 
     private static final ThreadLocal<Long> USER_ID = new ThreadLocal<>();
@@ -9,20 +11,23 @@ public final class UserContext {
     }
 
     public static void setCurrentUser(Long userId, String userName) {
-        USER_ID.set(userId);
-        USER_NAME.set(userName);
+        UserContextUtil.setUserId(userId);
+        UserContextUtil.setUsername(userName);
     }
 
     public static Long getCurrentUserId() {
-        return USER_ID.get();
+        Long userId = UserContextUtil.getCurrentUserId();
+        return userId != null ? userId : USER_ID.get();
     }
 
     public static String getCurrentUserName() {
-        return USER_NAME.get();
+        String username = UserContextUtil.getCurrentUsername();
+        return username != null ? username : USER_NAME.get();
     }
 
     public static void clear() {
         USER_ID.remove();
         USER_NAME.remove();
+        UserContextUtil.clear();
     }
 }
