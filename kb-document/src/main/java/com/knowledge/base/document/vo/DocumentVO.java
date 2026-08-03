@@ -12,6 +12,7 @@ public class DocumentVO implements Serializable {
     private String title;
     private String summary;
     private String content;
+    private Integer contentLength;
     private Integer documentType;
     private String filePath;
     private Long fileSize;

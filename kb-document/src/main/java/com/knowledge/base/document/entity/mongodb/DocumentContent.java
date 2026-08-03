@@ -12,6 +12,8 @@ public class DocumentContent {
     @Id
     private String id;
     private String content;
+    private String htmlContent;
+    private Integer wordCount;
     private Long documentId;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

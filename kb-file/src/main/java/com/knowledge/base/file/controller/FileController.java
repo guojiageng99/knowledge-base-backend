@@ -58,6 +58,14 @@ public class FileController {
         return Result.success(fileService.uploadFiles(files, dto));
     }
 
+    @PostMapping("/upload-from-url")
+    @Operation(summary = "Upload a remote file URL")
+    public Result<FileInfoVO> uploadFromUrl(@RequestParam String imageUrl) {
+        FileUploadDTO dto = new FileUploadDTO();
+        dto.setBusinessType("document-image");
+        return Result.success(fileService.uploadFromUrl(imageUrl, dto));
+    }
+
     @GetMapping({"/download/{fileId}", "/download/{fileId}/**"})
     @Operation(summary = "Download a file")
     public void downloadFile(@PathVariable Long fileId, HttpServletResponse response) throws IOException {

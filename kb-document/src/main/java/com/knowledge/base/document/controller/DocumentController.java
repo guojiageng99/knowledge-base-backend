@@ -65,6 +65,16 @@ public class DocumentController {
         return Result.success("File uploaded successfully", documentService.uploadDocumentFile(file));
     }
 
+    @PostMapping("/{documentId}/content")
+    public Result<Boolean> saveDocumentContent(@PathVariable Long documentId, @RequestBody String content) {
+        return Result.success(documentService.updateDocumentContent(documentId, content));
+    }
+
+    @GetMapping("/{documentId}/content")
+    public Result<String> getDocumentContent(@PathVariable Long documentId) {
+        return Result.success(documentService.getDocumentContent(documentId));
+    }
+
     @PostMapping("/{documentId}/like")
     public Result<Boolean> likeDocument(@PathVariable Long documentId) {
         return Result.success("Document liked successfully", documentService.likeDocument(documentId));

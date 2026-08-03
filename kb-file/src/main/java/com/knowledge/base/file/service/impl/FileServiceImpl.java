@@ -1,6 +1,7 @@
 package com.knowledge.base.file.service.impl;
 
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.http.HttpUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.knowledge.base.common.exception.BusinessException;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -73,6 +75,32 @@ public class FileServiceImpl implements FileService {
             throw exception;
         }
         return toVO(fileInfo);
+    }
+
+    @Override
+    public FileInfoVO uploadFromUrl(String url, FileUploadDTO dto) {
+        if (!StringUtils.hasText(url)) throw new BusinessException("File URL must not be empty");
+        byte[] bytes;
+        try { bytes = HttpUtil.downloadBytes(url.trim()); }
+        catch (RuntimeException exception) { throw new BusinessException("Unable to download remote file", exception); }
+        if (bytes == null || bytes.length == 0) throw new BusinessException("Remote file is empty");
+        String name = url.substring(url.lastIndexOf('/') + 1).split("\\?")[0];
+        if (!StringUtils.hasText(name) || !name.contains(".")) name = "image.png";
+        return uploadFile(new UrlMultipartFile(name, bytes), dto);
+    }
+
+    private static final class UrlMultipartFile implements MultipartFile {
+        private final String name;
+        private final byte[] bytes;
+        private UrlMultipartFile(String name, byte[] bytes) { this.name = name; this.bytes = bytes; }
+        public String getName() { return "file"; }
+        public String getOriginalFilename() { return name; }
+        public String getContentType() { return "application/octet-stream"; }
+        public boolean isEmpty() { return bytes.length == 0; }
+        public long getSize() { return bytes.length; }
+        public byte[] getBytes() { return bytes; }
+        public java.io.InputStream getInputStream() { return new java.io.ByteArrayInputStream(bytes); }
+        public void transferTo(java.io.File dest) throws java.io.IOException { java.nio.file.Files.write(dest.toPath(), bytes); }
     }
 
     @Override

@@ -196,6 +196,40 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         return true;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean updateDocumentContent(Long documentId, String content) {
+        Document existing = requireDocument(documentId);
+        Document update = new Document();
+        update.setId(documentId);
+        update.setContent(content);
+        update.setContentLength(content == null ? 0 : content.length());
+        try {
+            String contentId = StringUtils.hasText(existing.getContentId())
+                    ? documentContentService.updateContent(documentId, content)
+                    : documentContentService.saveContent(documentId, content);
+            update.setContentId(contentId);
+            update.setContentLength(content == null ? 0 : content.length());
+        } catch (RuntimeException exception) {
+            log.warn("MongoDB content update failed for document {}. MySQL content remains available.", documentId);
+        }
+        return documentMapper.updateById(update) > 0;
+    }
+
+    @Override
+    public String getDocumentContent(Long documentId) {
+        Document document = requireDocument(documentId);
+        if (StringUtils.hasText(document.getContentId())) {
+            try {
+                DocumentContent content = documentContentService.getContentById(document.getContentId());
+                if (content != null) return content.getContent();
+            } catch (RuntimeException exception) {
+                log.warn("MongoDB content lookup failed for document {}.", documentId);
+            }
+        }
+        return document.getContent();
+    }
+
     private Document requireDocument(Long documentId) {
         if (documentId == null) throw new BusinessException("Document ID is required");
         Document document = documentMapper.selectById(documentId);
@@ -247,6 +281,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             log.warn("MongoDB content update failed for document {}. MySQL content remains available.", existing.getId());
         }
         update.setContent(content);
+        update.setContentLength(content == null ? 0 : content.length());
     }
 
     private void deleteContent(Document document) {

@@ -13,6 +13,7 @@ import java.util.List;
 public interface FileService {
 
     FileInfoVO uploadFile(MultipartFile file, FileUploadDTO dto);
+    FileInfoVO uploadFromUrl(String url, FileUploadDTO dto);
 
     List<FileInfoVO> uploadFiles(MultipartFile[] files, FileUploadDTO dto);
 

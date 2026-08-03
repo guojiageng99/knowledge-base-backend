@@ -21,6 +21,7 @@ public class DocumentContentServiceImpl implements DocumentContentService {
         DocumentContent documentContent = new DocumentContent();
         documentContent.setDocumentId(documentId);
         documentContent.setContent(content);
+        documentContent.setWordCount(content == null ? 0 : content.length());
         documentContent.setCreateTime(LocalDateTime.now());
         documentContent.setUpdateTime(documentContent.getCreateTime());
         return mongoTemplate.save(documentContent).getId();
@@ -39,6 +40,7 @@ public class DocumentContentServiceImpl implements DocumentContentService {
             return saveContent(documentId, content);
         }
         documentContent.setContent(content);
+        documentContent.setWordCount(content == null ? 0 : content.length());
         documentContent.setUpdateTime(LocalDateTime.now());
         return mongoTemplate.save(documentContent).getId();
     }
