@@ -23,6 +23,10 @@ spring:
           uri: http://localhost:8089
           predicates:
             - Path=/api/foundation/**
+        - id: kb-ai
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/ai/**
 
 logging:
   level:
