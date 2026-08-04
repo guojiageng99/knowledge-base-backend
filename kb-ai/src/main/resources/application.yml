@@ -83,3 +83,10 @@ rag:
 document:
   service:
     url: ${DOCUMENT_SERVICE_URL:http://localhost:8082/api/document}
+graph:
+  service:
+    url: ${GRAPH_SERVICE_URL:http://localhost:8088/api/graph}
+kag:
+  llm-extraction-enabled: ${KAG_LLM_EXTRACTION_ENABLED:true}
+  rabbit:
+    enabled: ${KAG_RABBIT_ENABLED:false}

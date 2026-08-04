@@ -57,6 +57,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final DocumentAccessService documentAccessService;
     private final com.knowledge.base.document.service.FileUploadService fileUploadService;
     private final com.knowledge.base.document.feign.RagFeignClient ragFeignClient;
+    private final com.knowledge.base.document.feign.KAGFeignClient kagFeignClient;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -98,6 +99,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         }
         documentVersionService.createVersion(document.getId(), null, 1L);
         triggerRagReindex(document.getId());
+        if (Objects.equals(document.getStatus(), 1)) triggerGraphBuild(document.getId());
         return document.getId();
     }
 
@@ -118,6 +120,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (updated) {
             documentVersionService.createVersion(dto.getId(), buildChangeDescription(existing, document), 1L);
             triggerRagReindex(dto.getId());
+            if (Objects.equals(dto.getStatus(), 1)) triggerGraphBuild(dto.getId());
         }
         return updated;
     }
@@ -130,7 +133,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         deleteContent(document);
         clearDocumentTags(documentId);
         boolean deleted = documentMapper.deleteById(documentId) > 0;
-        if (deleted) triggerRagDelete(documentId);
+        if (deleted) { triggerRagDelete(documentId); triggerGraphDelete(documentId); }
         return deleted;
     }
 
@@ -201,7 +204,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean publishDocument(Long documentId) { return updateStatus(documentId, 1, true); }
+    public Boolean publishDocument(Long documentId) { boolean published = updateStatus(documentId, 1, true); if (published) triggerGraphBuild(documentId); return published; }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -271,6 +274,20 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     private Integer defaultValue(Integer value, int defaultValue) { return value == null ? defaultValue : value; }
+
+    private void triggerGraphBuild(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { kagFeignClient.buildGraph(documentId); }
+            catch (RuntimeException exception) { log.warn("Failed to trigger graph build for document {}", documentId, exception); }
+        });
+    }
+
+    private void triggerGraphDelete(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { kagFeignClient.deleteGraph(documentId); }
+            catch (RuntimeException exception) { log.warn("Failed to trigger graph cleanup for document {}", documentId, exception); }
+        });
+    }
 
     private void saveContent(Document document, String content) {
         if (!StringUtils.hasText(content)) {

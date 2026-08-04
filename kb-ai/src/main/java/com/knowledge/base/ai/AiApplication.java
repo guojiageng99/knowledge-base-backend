@@ -7,7 +7,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(scanBasePackages = "com.knowledge.base")
 @MapperScan("com.knowledge.base.ai.mapper")
-@EnableFeignClients(basePackages = "com.knowledge.base.ai.rag.client")
+@EnableFeignClients(basePackages = {"com.knowledge.base.ai.rag.client", "com.knowledge.base.ai.rag.kag.client"})
 public class AiApplication {
     public static void main(String[] args) {
         SpringApplication.run(AiApplication.class, args);
