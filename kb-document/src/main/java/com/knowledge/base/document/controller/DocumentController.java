@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,6 +28,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/documents")
@@ -85,6 +87,13 @@ public class DocumentController {
     @GetMapping("/{documentId}/content")
     public Result<String> getDocumentContent(@PathVariable Long documentId) {
         return Result.success(documentService.getDocumentContent(documentId));
+    }
+
+    @PatchMapping("/{documentId}/summary")
+    public Result<Boolean> updateSummary(@PathVariable Long documentId, @RequestBody Map<String, String> body) {
+        String summary = body == null ? null : body.get("summary");
+        if (summary == null || summary.isBlank()) return Result.error("Summary must not be blank");
+        return Result.success("Summary updated successfully", documentService.updateSummary(documentId, summary.length() > 500 ? summary.substring(0, 500) : summary));
     }
 
     @PostMapping("/upload-image-from-url")

@@ -275,6 +275,17 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean updateSummary(Long documentId, String summary) {
+        if (documentId == null) throw new BusinessException("Document ID is required");
+        requireDocument(documentId);
+        Document update = new Document();
+        update.setId(documentId);
+        update.setSummary(summary);
+        return documentMapper.updateById(update) > 0;
+    }
+
+    @Override
     public String getDocumentContent(Long documentId) {
         Document document = requireDocument(documentId);
         if (StringUtils.hasText(document.getContentId())) {

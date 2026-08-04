@@ -25,6 +25,7 @@ public interface DocumentService extends IService<Document> {
     Boolean archiveDocument(Long documentId);
     Boolean addTagsToDocument(Long documentId, List<Long> tagIds);
     Boolean updateDocumentContent(Long documentId, String content);
+    Boolean updateSummary(Long documentId, String summary);
     String getDocumentContent(Long documentId);
     String uploadImageFromUrl(String imageUrl);
 }
