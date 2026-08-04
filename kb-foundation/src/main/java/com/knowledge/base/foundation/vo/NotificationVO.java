@@ -1,11 +1,13 @@
 package com.knowledge.base.foundation.vo;
 
 import lombok.Data;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
+@Schema(description = "Notification VO")
 public class NotificationVO implements Serializable {
 
     private Long id;
@@ -20,4 +22,6 @@ public class NotificationVO implements Serializable {
     private Integer isRead;
     private LocalDateTime readTime;
     private LocalDateTime createTime;
+
+    private LocalDateTime createdAt;
 }

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS kb_system_config (
   KEY idx_category (category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System configuration';
 
-CREATE TABLE IF NOT EXISTS kb_notification (
+  CREATE TABLE IF NOT EXISTS kb_notification (
   id BIGINT NOT NULL PRIMARY KEY,
   user_id BIGINT NOT NULL,
   user_name VARCHAR(50) DEFAULT NULL,
@@ -63,11 +63,16 @@ CREATE TABLE IF NOT EXISTS kb_notification (
   related_type VARCHAR(50) DEFAULT NULL,
   related_id BIGINT DEFAULT NULL,
   is_read TINYINT NOT NULL DEFAULT 0,
-  read_time DATETIME DEFAULT NULL,
-  create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_notification_user_id (user_id),
-  KEY idx_notification_is_read (is_read),
-  KEY idx_notification_create_time (create_time)
+    read_time DATETIME DEFAULT NULL,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by BIGINT DEFAULT NULL,
+    update_by BIGINT DEFAULT NULL,
+    deleted TINYINT NOT NULL DEFAULT 0,
+    KEY idx_notification_user_id (user_id),
+    KEY idx_notification_is_read (is_read),
+    KEY idx_notification_type (notification_type),
+    KEY idx_notification_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='System notification';
 
 CREATE TABLE IF NOT EXISTS kb_operation_log (

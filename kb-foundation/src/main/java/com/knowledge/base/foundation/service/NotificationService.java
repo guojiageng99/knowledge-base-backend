@@ -15,15 +15,17 @@ public interface NotificationService {
 
     IPage<Notification> pageNotifications(Long current, Long size, Long userId, Integer isRead);
 
-    Notification getNotificationById(Long id);
+    Notification getNotificationById(Long id, Long userId);
 
     boolean sendNotification(Notification notification);
 
-    boolean markAsRead(Long id);
+    boolean markAsRead(Long id, Long userId);
 
     boolean markAllAsRead(Long userId);
 
     boolean deleteNotification(Long id);
+
+    boolean clearAll(Long userId);
 
     long getUnreadCount(Long userId);
 }

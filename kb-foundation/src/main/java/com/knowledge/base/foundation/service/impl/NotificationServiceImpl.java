@@ -17,6 +17,7 @@ import com.knowledge.base.foundation.vo.NotificationVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 
@@ -30,7 +31,9 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public Result<Long> sendNotification(NotificationDTO notificationDTO) {
         Notification notification = BeanUtil.copyProperties(notificationDTO, Notification.class);
-        notification.setIsRead(0);
+        if (notification.getIsRead() == null) {
+            notification.setIsRead(0);
+        }
         if (!sendNotification(notification)) {
             throw new BusinessException("Failed to send notification");
         }
@@ -44,15 +47,19 @@ public class NotificationServiceImpl implements NotificationService {
         }
         LambdaQueryWrapper<Notification> query = new LambdaQueryWrapper<Notification>()
                 .eq(Notification::getUserId, queryDTO.getUserId())
-                .eq(queryDTO.getNotificationType() != null, Notification::getNotificationType,
+                .eq(StringUtils.hasText(queryDTO.getNotificationType()), Notification::getNotificationType,
                         queryDTO.getNotificationType())
                 .eq(queryDTO.getIsRead() != null, Notification::getIsRead, queryDTO.getIsRead())
-                .ge(queryDTO.getStartTime() != null, Notification::getCreateTime, queryDTO.getStartTime())
-                .le(queryDTO.getEndTime() != null, Notification::getCreateTime, queryDTO.getEndTime())
+                .ge(StringUtils.hasText(queryDTO.getStartTime()), Notification::getCreateTime, queryDTO.getStartTime())
+                .le(StringUtils.hasText(queryDTO.getEndTime()), Notification::getCreateTime, queryDTO.getEndTime())
                 .orderByDesc(Notification::getCreateTime);
         IPage<NotificationVO> page = notificationMapper.selectPage(
                 new Page<Notification>(queryDTO.getCurrent(), queryDTO.getSize()), query)
-                .convert(notification -> BeanUtil.copyProperties(notification, NotificationVO.class));
+                .convert(notification -> {
+                    NotificationVO vo = BeanUtil.copyProperties(notification, NotificationVO.class);
+                    vo.setCreatedAt(notification.getCreateTime());
+                    return vo;
+                });
         return Result.success(page);
     }
 
@@ -66,8 +73,9 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public Notification getNotificationById(Long id) {
-        return notificationMapper.selectById(id);
+    public Notification getNotificationById(Long id, Long userId) {
+        return notificationMapper.selectOne(new LambdaQueryWrapper<Notification>()
+                .eq(Notification::getId, id).eq(Notification::getUserId, userId));
     }
 
     @Override
@@ -81,18 +89,17 @@ public class NotificationServiceImpl implements NotificationService {
         if (notification.getIsRead() == null) {
             notification.setIsRead(0);
         }
-        notification.setCreateTime(LocalDateTime.now());
         return notificationMapper.insert(notification) > 0;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean markAsRead(Long id) {
-        if (notificationMapper.selectById(id) == null) {
+    public boolean markAsRead(Long id, Long userId) {
+        if (getNotificationById(id, userId) == null) {
             throw new BusinessException("Notification does not exist");
         }
         return notificationMapper.update(null, new LambdaUpdateWrapper<Notification>()
-                .eq(Notification::getId, id)
+                .eq(Notification::getId, id).eq(Notification::getUserId, userId)
                 .set(Notification::getIsRead, 1)
                 .set(Notification::getReadTime, LocalDateTime.now())) > 0;
     }
@@ -115,6 +122,16 @@ public class NotificationServiceImpl implements NotificationService {
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteNotification(Long id) {
         return notificationMapper.deleteById(id) > 0;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean clearAll(Long userId) {
+        if (userId == null) {
+            throw new BusinessException("User ID is required");
+        }
+        return notificationMapper.delete(new LambdaQueryWrapper<Notification>()
+                .eq(Notification::getUserId, userId)) >= 0;
     }
 
     @Override
