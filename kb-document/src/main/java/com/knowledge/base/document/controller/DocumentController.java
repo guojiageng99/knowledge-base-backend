@@ -3,6 +3,7 @@ package com.knowledge.base.document.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.document.dto.DocumentDTO;
+import com.knowledge.base.document.dto.BatchExportRequest;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.PdfExportService;
 import com.knowledge.base.document.service.UserFavoriteService;
@@ -24,6 +25,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @RestController
 @RequestMapping("/documents")
@@ -122,6 +125,18 @@ public class DocumentController {
         response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''"
                 + URLEncoder.encode(pdfExportService.generatePdfFileName(documentId, document.getTitle()), StandardCharsets.UTF_8));
         response.getOutputStream().write(bytes);
+    }
+
+    @PostMapping("/batch-export")
+    public void batchExportDocuments(@Valid @RequestBody BatchExportRequest request, HttpServletResponse response) throws IOException {
+        byte[] bytes = pdfExportService.batchExportDocuments(request.getDocumentIds(), request.getFormat());
+        String fileName = "documents_export_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".zip";
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''"
+                + URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20"));
+        response.setContentLengthLong(bytes.length);
+        response.getOutputStream().write(bytes);
+        response.getOutputStream().flush();
     }
 
     @PutMapping("/{documentId}/publish")

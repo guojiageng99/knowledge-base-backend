@@ -24,7 +24,12 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Service
@@ -100,6 +105,35 @@ public class PdfExportServiceImpl implements PdfExportService {
         return safeTitle + "_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".pdf";
     }
 
+    @Override
+    public byte[] batchExportDocuments(List<String> documentIds, String format) {
+        if (!"pdf".equalsIgnoreCase(format) && !"markdown".equalsIgnoreCase(format)) {
+            throw new BusinessException("Export format must be pdf or markdown");
+        }
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream(); ZipOutputStream zip = new ZipOutputStream(output)) {
+            Set<String> fileNames = new HashSet<>();
+            for (String rawDocumentId : documentIds) {
+                Long documentId = parseDocumentId(rawDocumentId);
+                Document document = requireDocument(documentId);
+                boolean markdown = "markdown".equalsIgnoreCase(format);
+                String baseName = sanitizeFileName(document.getTitle());
+                String fileName = uniqueFileName(baseName + (markdown ? ".md" : ".pdf"), fileNames);
+                String documentContent = documentService.getDocumentContent(documentId);
+                byte[] content = markdown
+                        ? (documentContent == null ? "" : documentContent).getBytes(StandardCharsets.UTF_8)
+                        : exportDocumentToPdfBytes(documentId);
+                zip.putNextEntry(new ZipEntry(fileName));
+                zip.write(content);
+                zip.closeEntry();
+            }
+            zip.finish();
+            return output.toByteArray();
+        } catch (IOException exception) {
+            log.error("Batch document export failed", exception);
+            throw new BusinessException("Batch document export failed");
+        }
+    }
+
     private void addWrapped(List<TextLine> target, String text, PDFont font, float size, float height) throws IOException {
         for (String line : wrap(text, font, size, PDRectangle.A4.getWidth() - MARGIN * 2)) {
             target.add(new TextLine(line, size, height));
@@ -125,8 +159,9 @@ public class PdfExportServiceImpl implements PdfExportService {
     private PDFont loadFont(PDDocument pdf) throws IOException {
         String[] paths = { configuredFontPath, "C:\\Windows\\Fonts\\simhei.ttf", "C:\\Windows\\Fonts\\simsun.ttc", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" };
         for (String path : paths) {
+            if (path == null || path.isBlank()) continue;
             java.nio.file.Path fontPath = java.nio.file.Path.of(path);
-            if (java.nio.file.Files.exists(fontPath)) return PDType0Font.load(pdf, fontPath.toFile());
+            if (java.nio.file.Files.isRegularFile(fontPath)) return PDType0Font.load(pdf, fontPath.toFile());
         }
         try (InputStream stream = getClass().getResourceAsStream("/fonts/NotoSansCJK-Regular.ttc")) {
             if (stream != null) return PDType0Font.load(pdf, stream);
@@ -139,6 +174,33 @@ public class PdfExportServiceImpl implements PdfExportService {
         Document document = documentService.getById(documentId);
         if (document == null) throw new BusinessException("Document does not exist");
         return document;
+    }
+
+    private Long parseDocumentId(String rawDocumentId) {
+        try {
+            return Long.parseLong(rawDocumentId);
+        } catch (NumberFormatException exception) {
+            throw new BusinessException("Invalid document ID: " + rawDocumentId);
+        }
+    }
+
+    private String sanitizeFileName(String title) {
+        String value = FileUtil.cleanInvalid(title == null ? "document" : title).trim();
+        if (value.isEmpty()) value = "document";
+        return value.length() > 80 ? value.substring(0, 80) : value;
+    }
+
+    private String uniqueFileName(String fileName, Set<String> usedNames) {
+        if (usedNames.add(fileName)) return fileName;
+        int extensionIndex = fileName.lastIndexOf('.');
+        String baseName = extensionIndex < 0 ? fileName : fileName.substring(0, extensionIndex);
+        String extension = extensionIndex < 0 ? "" : fileName.substring(extensionIndex);
+        int sequence = 2;
+        String candidate;
+        do {
+            candidate = baseName + "_" + sequence++ + extension;
+        } while (!usedNames.add(candidate));
+        return candidate;
     }
 
     private record TextLine(String text, float size, float height) { }
