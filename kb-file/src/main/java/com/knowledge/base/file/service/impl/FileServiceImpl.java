@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -44,6 +43,11 @@ public class FileServiceImpl implements FileService {
     private final FileMapper fileMapper;
     private final FileStorageFactory storageFactory;
     private final FileStorageProperties properties;
+    private final com.knowledge.base.file.service.MediaService mediaService;
+    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${file.transcode.rabbit.enabled:false}")
+    private boolean transcodeRabbitEnabled;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -73,6 +77,10 @@ public class FileServiceImpl implements FileService {
         } catch (RuntimeException exception) {
             storage.delete(relativePath);
             throw exception;
+        }
+        if (isMedia(fileInfo)) {
+            try { mediaService.probeMediaInfo(fileInfo.getId()); fileInfo = fileMapper.selectById(fileInfo.getId()); }
+            catch (RuntimeException exception) { log.warn("Media metadata probing failed for file {}", fileInfo.getId(), exception); }
         }
         return toVO(fileInfo);
     }
@@ -284,7 +292,53 @@ public class FileServiceImpl implements FileService {
                 .downloadCount(file.getDownloadCount())
                 .storageType(file.getStorageType())
                 .createdAt(file.getCreateTime())
+                .duration(file.getDuration())
+                .resolution(file.getResolution())
+                .bitrate(file.getBitrate())
+                .transcodeStatus(file.getTranscodeStatus())
+                .playUrl("DONE".equals(file.getTranscodeStatus()) && StringUtils.hasText(file.getHlsPath()) ? base + "/stream/" + file.getId() + "/master.m3u8" : null)
+                .thumbnailUrl(StringUtils.hasText(file.getThumbnailPath()) ? base + "/thumbnail/" + file.getId() : null)
                 .build();
+    }
+
+    @Override
+    public String convertFileFormat(Long fileId, String targetFormat) {
+        FileInfo file = requireFile(fileId);
+        if (!isMedia(file)) throw new BusinessException("Only audio and video files can be transcoded");
+        if (!"hls".equalsIgnoreCase(targetFormat)) throw new BusinessException("Only HLS transcoding is supported");
+        mediaService.updateTranscodeStatus(fileId, "PENDING");
+        com.knowledge.base.file.message.TranscodeMessage message = new com.knowledge.base.file.message.TranscodeMessage(fileId, "hls");
+        if (transcodeRabbitEnabled) rabbitTemplate.convertAndSend(com.knowledge.base.file.config.TranscodeRabbitConfig.EXCHANGE, com.knowledge.base.file.config.TranscodeRabbitConfig.ROUTING_KEY, message);
+        else java.util.concurrent.CompletableFuture.runAsync(() -> transcode(message));
+        return fileId.toString();
+    }
+
+    @Override public void streamMasterPlaylist(Long fileId, HttpServletResponse response) throws IOException { streamHlsResource(fileId, "master.m3u8", response); }
+    @Override public void streamHlsResource(Long fileId, String resource, HttpServletResponse response) throws IOException {
+        FileInfo file = requireFile(fileId);
+        String normalizedResource = normalizeHlsResource(resource);
+        if (!StringUtils.hasText(file.getHlsPath()) || !safeResource(normalizedResource)
+                || !storageFactory.getStorage().exists(file.getHlsPath() + "/" + normalizedResource)) {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        response.setContentType(normalizedResource.endsWith(".m3u8")
+                ? "application/vnd.apple.mpegurl" : "video/mp2t");
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        try (InputStream input = storageFactory.getStorage().getInputStream(file.getHlsPath() + "/" + normalizedResource)) {
+            input.transferTo(response.getOutputStream());
+        }
+    }
+    @Override public void streamThumbnail(Long fileId, HttpServletResponse response) throws IOException { FileInfo file = requireFile(fileId); if (!StringUtils.hasText(file.getThumbnailPath())) { response.setStatus(HttpServletResponse.SC_NOT_FOUND); return; } response.setContentType("image/jpeg"); response.setHeader("Access-Control-Allow-Origin", "*"); try (InputStream input = storageFactory.getStorage().getInputStream(file.getThumbnailPath())) { input.transferTo(response.getOutputStream()); } }
+    private void transcode(com.knowledge.base.file.message.TranscodeMessage message) { try { mediaService.updateTranscodeStatus(message.getFileId(), "PROCESSING"); if (mediaService.transcodeToHls(message.getFileId()) == null) throw new BusinessException("HLS transcoding failed"); mediaService.generateThumbnail(message.getFileId()); mediaService.updateTranscodeStatus(message.getFileId(), "DONE"); } catch (RuntimeException exception) { mediaService.updateTranscodeStatus(message.getFileId(), "FAILED"); log.error("Media transcoding failed for {}", message.getFileId(), exception); } }
+    private boolean isMedia(FileInfo file) { return "VIDEO".equals(file.getFileType()) || "AUDIO".equals(file.getFileType()); }
+    private boolean safeResource(String resource) { return StringUtils.hasText(resource) && !resource.contains("..") && (resource.endsWith(".m3u8") || resource.endsWith(".ts")); }
+    private String normalizeHlsResource(String resource) {
+        if (!StringUtils.hasText(resource)) {
+            return "";
+        }
+        String normalized = resource.replace('\\', '/');
+        return normalized.startsWith("/") ? normalized.substring(1) : normalized;
     }
 
     private String extensionOf(String filename) {
@@ -297,8 +351,8 @@ public class FileServiceImpl implements FileService {
     private String detectFileType(String extension) {
         return switch (extension) {
             case "png", "jpg", "jpeg", "gif", "bmp", "svg" -> "IMAGE";
-            case "mp4", "avi", "mov", "wmv" -> "VIDEO";
-            case "mp3", "wav", "flac" -> "AUDIO";
+            case "mp4", "avi", "mov", "wmv", "mkv", "webm", "flv" -> "VIDEO";
+            case "mp3", "wav", "flac", "aac", "ogg" -> "AUDIO";
             case "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "md" -> "DOCUMENT";
             default -> "OTHER";
         };

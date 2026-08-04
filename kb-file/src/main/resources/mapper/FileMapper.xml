@@ -16,12 +16,19 @@
         <result column="access_level" property="accessLevel"/>
         <result column="download_count" property="downloadCount"/>
         <result column="status" property="status"/>
+        <result column="duration" property="duration"/>
+        <result column="resolution" property="resolution"/>
+        <result column="bitrate" property="bitrate"/>
+        <result column="transcode_status" property="transcodeStatus"/>
+        <result column="hls_path" property="hlsPath"/>
+        <result column="thumbnail_path" property="thumbnailPath"/>
     </resultMap>
 
     <sql id="BaseColumns">
         id, original_name, stored_name, file_path, file_size, file_type, mime_type, file_hash,
         storage_type, bucket_name, uploader_id, access_level, download_count, status,
-        create_time, update_time, create_by, update_by, deleted
+        create_time, update_time, create_by, update_by, deleted,
+        duration, resolution, bitrate, transcode_status, hls_path, thumbnail_path
     </sql>
 
     <select id="selectByUploaderId" resultMap="BaseResultMap">

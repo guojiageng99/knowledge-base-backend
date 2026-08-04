@@ -44,6 +44,15 @@ spring:
       port: 6379
       database: 3
       timeout: 5s
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        concurrency: 1
+        prefetch: 1
   servlet:
     multipart:
       enabled: true
@@ -98,12 +107,33 @@ file:
         - gif
         - bmp
         - svg
+        - mp4
+        - avi
+        - mov
+        - wmv
+        - mkv
+        - webm
+        - flv
+        - mp3
+        - wav
+        - flac
+        - aac
+        - ogg
       enable-fast-upload: true
       calculate-hash: true
       enable-resumable-upload: true
+    ffmpeg:
+      path: ${FFMPEG_PATH:ffmpeg}
+      ffprobe-path: ${FFPROBE_PATH:ffprobe}
+      hls-segment-time: ${HLS_SEGMENT_TIME:10}
+      thumbnail-time: ${THUMBNAIL_TIME:5}
+      timeout-seconds: ${FFMPEG_TIMEOUT_SECONDS:900}
     url:
       prefix: /api/file/files
       preview-prefix: /api/file/files/preview
+  transcode:
+    rabbit:
+      enabled: ${TRANSCODE_RABBIT_ENABLED:false}
 
 knife4j:
   enable: true

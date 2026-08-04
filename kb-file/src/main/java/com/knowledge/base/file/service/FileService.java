@@ -30,4 +30,9 @@ public interface FileService {
     boolean deleteFile(Long fileId);
 
     boolean batchDeleteFiles(List<Long> fileIds);
+
+    String convertFileFormat(Long fileId, String targetFormat);
+    void streamMasterPlaylist(Long fileId, HttpServletResponse response) throws IOException;
+    void streamHlsResource(Long fileId, String resource, HttpServletResponse response) throws IOException;
+    void streamThumbnail(Long fileId, HttpServletResponse response) throws IOException;
 }

@@ -28,4 +28,10 @@ public class FileInfoVO {
     private Integer downloadCount;
     private String storageType;
     private LocalDateTime createdAt;
+    private Integer duration;
+    private String resolution;
+    private Integer bitrate;
+    private String transcodeStatus;
+    private String playUrl;
+    private String thumbnailUrl;
 }

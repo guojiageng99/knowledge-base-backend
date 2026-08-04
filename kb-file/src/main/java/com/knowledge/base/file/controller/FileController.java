@@ -90,6 +90,21 @@ public class FileController {
         return Result.success(fileService.getFileInfo(fileId));
     }
 
+    @PostMapping("/convert/{fileId}")
+    @Operation(summary = "Transcode audio or video to HLS")
+    public Result<String> convert(@PathVariable Long fileId, @RequestParam(defaultValue = "hls") String targetFormat) { return Result.success("Transcoding submitted", fileService.convertFileFormat(fileId, targetFormat)); }
+
+    @GetMapping("/stream/{fileId}/master.m3u8")
+    public void streamMaster(@PathVariable Long fileId, HttpServletResponse response) throws IOException { fileService.streamMasterPlaylist(fileId, response); }
+
+    @GetMapping("/stream/{fileId}/{*resource}")
+    public void streamHls(@PathVariable Long fileId, @PathVariable String resource, HttpServletResponse response) throws IOException {
+        fileService.streamHlsResource(fileId, resource, response);
+    }
+
+    @GetMapping("/thumbnail/{fileId}")
+    public void thumbnail(@PathVariable Long fileId, HttpServletResponse response) throws IOException { fileService.streamThumbnail(fileId, response); }
+
     @PostMapping("/page")
     @Operation(summary = "Page files")
     public Result<PageResult<FileInfoVO>> pageFiles(@RequestBody FileQueryDTO dto) {

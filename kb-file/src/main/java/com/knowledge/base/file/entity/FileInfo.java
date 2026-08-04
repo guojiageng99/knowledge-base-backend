@@ -23,4 +23,10 @@ public class FileInfo extends BaseEntity {
     private Integer accessLevel;
     private Integer downloadCount;
     private Integer status;
+    private Integer duration;
+    private String resolution;
+    private Integer bitrate;
+    private String transcodeStatus;
+    private String hlsPath;
+    private String thumbnailPath;
 }
