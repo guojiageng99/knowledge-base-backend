@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @Schema(description = "用户信息")
@@ -23,4 +24,6 @@ public class UserVO implements Serializable {
     private String lastLoginIp;
     private java.time.LocalDateTime createTime;
     private java.time.LocalDateTime updateTime;
+    private List<String> roles;
+    private List<String> permissions;
 }

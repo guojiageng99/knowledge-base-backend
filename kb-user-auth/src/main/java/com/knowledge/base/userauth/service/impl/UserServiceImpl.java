@@ -13,6 +13,8 @@ import com.knowledge.base.userauth.entity.User;
 import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.mapper.UserMapper;
+import com.knowledge.base.userauth.mapper.RoleMapper;
+import com.knowledge.base.userauth.mapper.PermissionMapper;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.LoginVO;
 import com.knowledge.base.userauth.vo.UserVO;
@@ -30,6 +32,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
+    private final RoleMapper roleMapper;
+    private final PermissionMapper permissionMapper;
 
     @Override
     public User getByUsername(String username) {
@@ -229,7 +233,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private LoginVO.UserInfo toLoginUserInfo(User user) {
         return LoginVO.UserInfo.builder().userId(user.getId()).username(user.getUsername())
-                .nickname(user.getRealName()).email(user.getEmail()).phone(user.getPhone()).avatar(user.getAvatar()).build();
+                .nickname(user.getRealName()).email(user.getEmail()).phone(user.getPhone()).avatar(user.getAvatar())
+                .roles(roleMapper.selectRoleCodesByUserId(user.getId()))
+                .permissions(permissionMapper.selectPermissionCodesByUserId(user.getId())).build();
     }
 
     private UserVO toUserVO(User user) {
@@ -240,6 +246,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         vo.setRemark(user.getRemark());
         vo.setLastLoginTime(user.getLastLoginTime()); vo.setLastLoginIp(user.getLastLoginIp());
         vo.setCreateTime(user.getCreateTime()); vo.setUpdateTime(user.getUpdateTime());
+        vo.setRoles(roleMapper.selectRoleCodesByUserId(user.getId()));
+        vo.setPermissions(permissionMapper.selectPermissionCodesByUserId(user.getId()));
         return vo;
     }
 }

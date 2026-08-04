@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 import java.io.Serializable;
 
 @Data
@@ -32,5 +34,7 @@ public class LoginVO implements Serializable {
         private String email;
         private String phone;
         private String avatar;
+        private List<String> roles;
+        private List<String> permissions;
     }
 }

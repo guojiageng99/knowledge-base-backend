@@ -63,18 +63,44 @@ CREATE TABLE IF NOT EXISTS sys_permission (
   id BIGINT NOT NULL PRIMARY KEY,
   permission_name VARCHAR(64) NOT NULL COMMENT 'permission name',
   permission_code VARCHAR(128) NOT NULL COMMENT 'permission code',
+  permission_type TINYINT NOT NULL DEFAULT 1 COMMENT '1 menu, 2 button, 3 api',
   resource_type VARCHAR(32) DEFAULT NULL COMMENT 'resource type',
   resource_path VARCHAR(255) DEFAULT NULL COMMENT 'resource path',
   parent_id BIGINT DEFAULT 0 COMMENT 'parent permission id',
+  path VARCHAR(200) DEFAULT NULL COMMENT 'menu URL',
+  api_url VARCHAR(500) DEFAULT NULL COMMENT 'API URL',
+  method VARCHAR(10) DEFAULT NULL COMMENT 'HTTP method',
+  icon VARCHAR(50) DEFAULT NULL COMMENT 'icon name',
   sort_order INT DEFAULT 0 COMMENT 'sort order',
+  remark VARCHAR(255) DEFAULT NULL COMMENT 'description',
   status TINYINT NOT NULL DEFAULT 1 COMMENT 'status: 1 enabled, 0 disabled',
   deleted TINYINT NOT NULL DEFAULT 0 COMMENT 'logic delete: 0 normal, 1 deleted',
   create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
   update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   create_by BIGINT DEFAULT NULL,
   update_by BIGINT DEFAULT NULL,
-  UNIQUE KEY uk_sys_permission_code (permission_code)
+  UNIQUE KEY uk_sys_permission_code (permission_code),
+  KEY idx_sys_permission_parent_id (parent_id),
+  KEY idx_sys_permission_type (permission_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='permission table';
+
+CREATE TABLE IF NOT EXISTS sys_user_role (
+  id BIGINT NOT NULL PRIMARY KEY,
+  user_id BIGINT NOT NULL COMMENT 'kb_user ID',
+  role_id BIGINT NOT NULL COMMENT 'sys_role ID',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_user_role (user_id, role_id),
+  KEY idx_sys_user_role_role_id (role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='user role relation';
+
+CREATE TABLE IF NOT EXISTS sys_role_permission (
+  id BIGINT NOT NULL PRIMARY KEY,
+  role_id BIGINT NOT NULL COMMENT 'sys_role ID',
+  permission_id BIGINT NOT NULL COMMENT 'sys_permission ID',
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_sys_role_permission (role_id, permission_id),
+  KEY idx_sys_role_permission_permission_id (permission_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='role permission relation';
 
 CREATE TABLE IF NOT EXISTS kb_team (
   id BIGINT NOT NULL COMMENT 'team ID',
