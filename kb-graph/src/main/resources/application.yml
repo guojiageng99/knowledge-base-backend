@@ -1,0 +1,13 @@
+server:
+  port: 8088
+  servlet:
+    context-path: /api/graph
+
+spring:
+  application:
+    name: kb-graph
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:}
