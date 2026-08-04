@@ -25,7 +25,7 @@ public class ReviewNotificationListener {
     @RabbitListener(queues = "kb.notification.review.queue")
     public void handleReviewEvent(ReviewEventDTO event) {
         if (event == null || event.getEventType() == null) return;
-        String link = "/documents/" + event.getDocumentId();
+        String link = "/review/documents/" + event.getDocumentId();
         switch (event.getEventType()) {
             case "SUBMITTED" -> handleSubmitted(event, link);
             case "APPROVED" -> handleAuthor(event, link, "文档审核通过",
@@ -78,7 +78,12 @@ public class ReviewNotificationListener {
 
     private List<Long> findReviewerIds() {
         try {
-            return jdbcTemplate.queryForList("SELECT id FROM kb_user.kb_user WHERE status = 1 AND deleted = 0", Long.class);
+            return jdbcTemplate.queryForList(
+                    "SELECT ur.user_id FROM kb_user.kb_user_role ur "
+                            + "JOIN kb_user.kb_role r ON r.id = ur.role_id "
+                            + "JOIN kb_user.kb_user u ON u.id = ur.user_id "
+                            + "WHERE r.role_code = 'ROLE_REVIEWER' AND u.status = 1 AND u.deleted = 0",
+                    Long.class);
         } catch (Exception e) {
             log.warn("Unable to query reviewers: {}", e.getMessage());
             return List.of();

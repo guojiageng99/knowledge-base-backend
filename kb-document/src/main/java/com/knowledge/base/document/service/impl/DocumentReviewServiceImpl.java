@@ -15,6 +15,7 @@ import com.knowledge.base.document.entity.DocumentReview;
 import com.knowledge.base.document.mapper.DocumentMapper;
 import com.knowledge.base.document.mapper.DocumentReviewMapper;
 import com.knowledge.base.document.service.DocumentReviewService;
+import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.DocumentReviewVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +41,6 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
     private static final int STATUS_PENDING_REVIEW = 3;
     private static final int RESULT_APPROVED = 1;
     private static final int RESULT_REJECTED = 2;
-    private static final long UNASSIGNED_REVIEWER_ID = 0L;
     private static final String REVIEW_EXCHANGE = "kb.notification.exchange";
 
     private final DocumentReviewMapper documentReviewMapper;
@@ -60,9 +60,8 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
         DocumentReview review = new DocumentReview();
         review.setId(SnowflakeIdGenerator.nextId());
         review.setDocumentId(documentId);
-        // The tutorial table makes reviewer_id non-null, so zero represents an unassigned reviewer.
-        review.setReviewerId(UNASSIGNED_REVIEWER_ID);
-        review.setReviewerName("待分配");
+        review.setReviewerId(null);
+        review.setReviewerName(null);
         review.setBeforeStatus(document.getStatus());
         review.setReviewRound((latestRound == null ? 0 : latestRound) + 1);
         review.setReviewLevel(1);
@@ -140,6 +139,14 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
     }
 
     @Override
+    public DocumentReviewVO getCurrentReviewTask(Long documentId) {
+        requireDocument(documentId);
+        DocumentReview review = documentReviewMapper.selectLatestByDocumentId(documentId);
+        if (review == null || review.getReviewResult() != null) return null;
+        return toVO(review);
+    }
+
+    @Override
     public Long getPendingCount() {
         return documentReviewMapper.selectCount(new LambdaQueryWrapper<DocumentReview>()
                 .isNull(DocumentReview::getReviewResult));
@@ -182,8 +189,11 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
             throw new BusinessException("文档当前不处于待审核状态");
         }
 
-        review.setReviewerId(1L);
-        review.setReviewerName("审核员");
+        Long reviewerId = UserContext.getCurrentUserId();
+        if (reviewerId == null) throw new BusinessException("Current reviewer is not authenticated");
+        review.setReviewerId(reviewerId);
+        String reviewerName = UserContext.getCurrentUserName();
+        review.setReviewerName(reviewerName == null ? String.valueOf(reviewerId) : reviewerName);
         review.setReviewResult(result);
         review.setReviewComment(dto.getReviewComment());
         review.setReviewedAt(LocalDateTime.now());

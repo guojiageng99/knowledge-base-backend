@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS tb_document_review (
     KEY idx_reviewed_at (reviewed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档审核记录表';
 
-ALTER TABLE tb_document_review MODIFY COLUMN reviewer_id BIGINT NOT NULL;
+ALTER TABLE tb_document_review MODIFY COLUMN reviewer_id BIGINT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN review_result TINYINT DEFAULT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN reviewed_at DATETIME DEFAULT NULL;
 ALTER TABLE tb_document_review ADD COLUMN IF NOT EXISTS review_level INT NOT NULL DEFAULT 1 COMMENT '审核级别';

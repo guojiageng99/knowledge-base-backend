@@ -157,7 +157,7 @@ CREATE TABLE IF NOT EXISTS tb_document_version (
 CREATE TABLE IF NOT EXISTS tb_document_review (
     id BIGINT NOT NULL,
     document_id BIGINT NOT NULL,
-    reviewer_id BIGINT NOT NULL,
+      reviewer_id BIGINT DEFAULT NULL,
     reviewer_name VARCHAR(50) DEFAULT NULL,
     review_result TINYINT DEFAULT NULL,
     review_comment TEXT DEFAULT NULL,

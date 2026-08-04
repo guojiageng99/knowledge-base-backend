@@ -65,6 +65,16 @@ public class DocumentReviewController {
         return Result.success(reviewService.getDocumentReviewHistory(documentId));
     }
 
+    @GetMapping("/documents/{documentId}/history")
+    public Result<List<DocumentReviewVO>> getDocumentReviewHistoryByDocument(@PathVariable Long documentId) {
+        return Result.success(reviewService.getDocumentReviewHistory(documentId));
+    }
+
+    @GetMapping("/documents/{documentId}/current")
+    public Result<DocumentReviewVO> getCurrentReviewTask(@PathVariable Long documentId) {
+        return Result.success(reviewService.getCurrentReviewTask(documentId));
+    }
+
     @GetMapping("/tasks")
     public Result<PageResult<DocumentReviewVO>> getReviewTasks(
             @RequestParam(required = false) String status,

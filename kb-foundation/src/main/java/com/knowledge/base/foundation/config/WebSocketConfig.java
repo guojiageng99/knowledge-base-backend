@@ -1,6 +1,8 @@
 package com.knowledge.base.foundation.config;
 
 import com.knowledge.base.foundation.websocket.WebSocketAuthInterceptor;
+import com.knowledge.base.foundation.websocket.WebSocketHandshakeInterceptor;
+import com.knowledge.base.foundation.websocket.CustomHandshakeHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -14,6 +16,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    private final WebSocketHandshakeInterceptor webSocketHandshakeInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
@@ -24,7 +27,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/notification").setAllowedOriginPatterns("*").withSockJS();
+        registry.addEndpoint("/ws/notification")
+                .setAllowedOriginPatterns("*")
+                .setHandshakeHandler(new CustomHandshakeHandler())
+                .addInterceptors(webSocketHandshakeInterceptor)
+                .withSockJS();
     }
 
     @Override

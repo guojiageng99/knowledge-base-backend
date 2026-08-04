@@ -21,6 +21,7 @@ public interface DocumentReviewService extends IService<DocumentReview> {
     PageResult<DocumentReviewVO> getPendingReviews(ReviewQueryDTO dto);
 
     List<DocumentReviewVO> getDocumentReviewHistory(Long documentId);
+    DocumentReviewVO getCurrentReviewTask(Long documentId);
     Long getPendingCount();
     Map<String, Long> getReviewStats();
     void batchReview(List<Long> taskIds, String status, String comment);
