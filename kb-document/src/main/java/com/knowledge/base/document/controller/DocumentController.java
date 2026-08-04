@@ -3,12 +3,16 @@ package com.knowledge.base.document.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.document.dto.DocumentDTO;
+import com.knowledge.base.document.dto.AutoSaveDTO;
+import com.knowledge.base.document.dto.AutoSaveHistoryQueryDTO;
 import com.knowledge.base.document.dto.BatchExportRequest;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.PdfExportService;
 import com.knowledge.base.document.service.UserFavoriteService;
+import com.knowledge.base.document.service.AutoSaveHistoryService;
 import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.DocumentVO;
+import com.knowledge.base.document.vo.AutoSaveHistoryVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,6 +42,7 @@ public class DocumentController {
     private final DocumentService documentService;
     private final PdfExportService pdfExportService;
     private final UserFavoriteService userFavoriteService;
+    private final AutoSaveHistoryService autoSaveHistoryService;
 
     @PostMapping
     public Result<Long> createDocument(@Valid @RequestBody DocumentDTO documentDTO) {
@@ -47,6 +52,33 @@ public class DocumentController {
     @PutMapping
     public Result<Boolean> updateDocument(@Valid @RequestBody DocumentDTO documentDTO) {
         return Result.success("Document updated successfully", documentService.updateDocument(documentDTO));
+    }
+
+    @PostMapping("/autosave")
+    public Result<Long> autoSaveDocument(@Valid @RequestBody AutoSaveDTO autoSaveDTO) {
+        return Result.success("Draft saved automatically", documentService.autoSaveDocument(autoSaveDTO));
+    }
+
+    @PutMapping("/autosave/dismiss")
+    public Result<Boolean> dismissAutoSaveDrafts() {
+        documentService.dismissAutoSaveDrafts();
+        return Result.success("Automatic-save drafts dismissed", true);
+    }
+
+    @GetMapping("/{documentId}/autosave-history")
+    public Result<IPage<AutoSaveHistoryVO>> getAutoSaveHistory(@PathVariable Long documentId,
+                                                                 @RequestParam(defaultValue = "1") Long current,
+                                                                 @RequestParam(defaultValue = "20") Long size) {
+        AutoSaveHistoryQueryDTO query = new AutoSaveHistoryQueryDTO();
+        query.setDocumentId(documentId);
+        query.setCurrent(current);
+        query.setSize(size);
+        return Result.success(autoSaveHistoryService.pageHistory(query));
+    }
+
+    @GetMapping("/{documentId}/autosave-history/{snapshotId}")
+    public Result<AutoSaveHistoryVO> getAutoSaveSnapshot(@PathVariable Long documentId, @PathVariable String snapshotId) {
+        return Result.success(autoSaveHistoryService.getSnapshot(snapshotId, documentId));
     }
 
     @DeleteMapping("/{documentId}")

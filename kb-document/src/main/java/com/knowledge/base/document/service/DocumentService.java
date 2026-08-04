@@ -3,6 +3,7 @@ package com.knowledge.base.document.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.knowledge.base.document.dto.DocumentDTO;
+import com.knowledge.base.document.dto.AutoSaveDTO;
 import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.vo.DocumentVO;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,4 +31,6 @@ public interface DocumentService extends IService<Document> {
     Boolean updateSummary(Long documentId, String summary);
     String getDocumentContent(Long documentId);
     String uploadImageFromUrl(String imageUrl);
+    Long autoSaveDocument(AutoSaveDTO autoSaveDTO);
+    void dismissAutoSaveDrafts();
 }

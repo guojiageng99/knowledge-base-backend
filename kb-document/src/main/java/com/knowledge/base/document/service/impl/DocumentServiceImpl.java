@@ -5,12 +5,14 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.knowledge.base.common.exception.BusinessException;
 import com.knowledge.base.common.utils.SnowflakeIdGenerator;
 import com.knowledge.base.document.dto.DocumentDTO;
+import com.knowledge.base.document.dto.AutoSaveDTO;
 import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.entity.DocumentTag;
 import com.knowledge.base.document.entity.Tag;
@@ -22,6 +24,7 @@ import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.DocumentVersionService;
 import com.knowledge.base.document.service.DocumentContentService;
 import com.knowledge.base.document.service.DocumentAccessService;
+import com.knowledge.base.document.service.AutoSaveHistoryService;
 import com.knowledge.base.document.service.FileParserService;
 import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.AuthorVO;
@@ -67,6 +70,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final com.knowledge.base.document.feign.KAGFeignClient kagFeignClient;
     private final com.knowledge.base.document.feign.SearchFeignClient searchFeignClient;
     private final JdbcTemplate jdbcTemplate;
+    private final AutoSaveHistoryService autoSaveHistoryService;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -138,10 +142,65 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public Long autoSaveDocument(AutoSaveDTO dto) {
+        Long authorId = currentUserId();
+        String authorName = UserContext.getCurrentUserName() == null ? "System Administrator" : UserContext.getCurrentUserName();
+        Document document;
+        if (dto.getId() != null) {
+            document = requireDocument(dto.getId());
+            if (!authorId.equals(document.getAuthorId())) throw new BusinessException("You do not have permission to save this document");
+        } else {
+            document = findRecentAutoSaveDraft(authorId);
+            if (document == null) {
+                document = new Document();
+                document.setId(SnowflakeIdGenerator.nextId());
+                document.setDocumentType(1);
+                document.setContent("");
+                document.setStatus(0);
+                document.setIsPublic(1);
+                document.setIsTop(0);
+                document.setIsRecommend(0);
+                document.setSource(1);
+                document.setAllowComment(1);
+                document.setSort(0);
+                document.setViewCount(0L);
+                document.setLikeCount(0L);
+                document.setFavoriteCount(0L);
+                document.setCommentCount(0L);
+                document.setAuthorId(authorId);
+                document.setAuthorName(authorName);
+                document.setAutoSaveDismissed(0);
+                applyAutoSaveFields(document, dto, true);
+                if (documentMapper.insert(document) <= 0) throw new BusinessException("Failed to create automatic-save draft");
+            }
+        }
+
+        applyAutoSaveFields(document, dto, false);
+        document.setStatus(0);
+        if (documentMapper.updateById(document) <= 0) throw new BusinessException("Failed to save draft");
+        if (dto.getContent() != null) {
+            updateDocumentContent(document.getId(), dto.getContent());
+        }
+        autoSaveHistoryService.saveSnapshot(document.getId(), document.getTitle(), dto.getContent(), authorId);
+        return document.getId();
+    }
+
+    @Override
+    public void dismissAutoSaveDrafts() {
+        Long userId = currentUserId();
+        documentMapper.update(null, new LambdaUpdateWrapper<Document>()
+                .eq(Document::getAuthorId, userId)
+                .eq(Document::getStatus, 0)
+                .set(Document::getAutoSaveDismissed, 1));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean deleteDocument(Long documentId) {
         if (documentId == null) throw new BusinessException("Document ID is required");
         Document document = requireDocument(documentId);
         deleteContent(document);
+        autoSaveHistoryService.deleteByDocumentId(documentId);
         clearDocumentTags(documentId);
         boolean deleted = documentMapper.deleteById(documentId) > 0;
         if (deleted) { triggerRagDelete(documentId); triggerGraphDelete(documentId); triggerSearchDelete(documentId); }
@@ -412,6 +471,22 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         } catch (RuntimeException exception) {
             log.warn("MongoDB content save failed for document {}. MySQL content remains available.", document.getId());
         }
+    }
+
+    private Document findRecentAutoSaveDraft(Long authorId) {
+        return documentMapper.selectOne(new LambdaQueryWrapper<Document>()
+                .eq(Document::getAuthorId, authorId).eq(Document::getStatus, 0)
+                .eq(Document::getAutoSaveDismissed, 0)
+                .ge(Document::getCreateTime, LocalDateTime.now().minusMinutes(5))
+                .orderByDesc(Document::getCreateTime).last("LIMIT 1"));
+    }
+
+    private void applyAutoSaveFields(Document document, AutoSaveDTO dto, boolean creating) {
+        if (creating || dto.getTitle() != null) document.setTitle(StringUtils.hasText(dto.getTitle()) ? dto.getTitle().trim() : "Untitled document");
+        if (dto.getSummary() != null) document.setSummary(dto.getSummary());
+        if (dto.getCategoryId() != null) document.setCategoryId(dto.getCategoryId());
+        if (dto.getTeamId() != null) document.setTeamId(dto.getTeamId());
+        if (dto.getTags() != null) document.setTags(dto.getTags());
     }
 
     private void updateContent(Document existing, Document update, String content) {

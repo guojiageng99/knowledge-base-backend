@@ -23,6 +23,7 @@ public class Document extends BaseEntity {
     private String fileExtension;
     private String mimeType;
     private Long categoryId;
+    private Long teamId;
     private String tags;
     private Integer status;
     private Integer isPublic;
@@ -41,4 +42,5 @@ public class Document extends BaseEntity {
     private Integer allowComment;
     private Integer sort;
     private String remark;
+    private Integer autoSaveDismissed;
 }
