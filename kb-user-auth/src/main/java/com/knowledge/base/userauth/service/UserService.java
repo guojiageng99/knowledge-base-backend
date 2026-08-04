@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.knowledge.base.userauth.entity.User;
 import com.knowledge.base.userauth.vo.LoginVO;
 import com.knowledge.base.userauth.vo.UserVO;
+import com.knowledge.base.userauth.vo.UserStatisticsVO;
 import com.knowledge.base.userauth.dto.UserDTO;
+import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface UserService extends IService<User> {
@@ -15,6 +17,7 @@ public interface UserService extends IService<User> {
 
     Long createUser(UserDTO userDTO);
     Boolean updateUser(UserDTO userDTO);
+    Boolean updateCurrentUserProfile(UserProfileDTO profileDTO);
     Boolean deleteUser(Long userId);
     UserVO getUserById(Long userId);
     IPage<UserVO> pageUsers(Long current, Long size, String keyword, String role, Integer status);
@@ -28,4 +31,5 @@ public interface UserService extends IService<User> {
     LoginVO refresh(String refreshToken);
 
     UserVO getCurrentUserInfo();
+    UserStatisticsVO getUserStatistics(Long userId);
 }

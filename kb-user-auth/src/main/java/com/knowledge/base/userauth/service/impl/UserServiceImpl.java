@@ -11,10 +11,12 @@ import com.knowledge.base.common.utils.JwtTokenUtil;
 import com.knowledge.base.common.utils.UserContextUtil;
 import com.knowledge.base.userauth.entity.User;
 import com.knowledge.base.userauth.dto.UserDTO;
+import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.mapper.UserMapper;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.LoginVO;
 import com.knowledge.base.userauth.vo.UserVO;
+import com.knowledge.base.userauth.vo.UserStatisticsVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUsername(dto.getUsername()); user.setPassword(dto.getPassword());
         user.setEmail(dto.getEmail()); user.setPhone(dto.getPhone()); user.setAvatar(dto.getAvatar());
         user.setRealName(dto.getRealName()); user.setDepartment(dto.getDepartment()); user.setPosition(dto.getPosition());
+        user.setRemark(dto.getRemark());
         user.setStatus(dto.getStatus());
         if (!createUser(user)) throw new BusinessException("Failed to create user");
         return user.getId();
@@ -76,6 +79,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (dto.getRealName() != null) user.setRealName(dto.getRealName());
         if (dto.getDepartment() != null) user.setDepartment(dto.getDepartment());
         if (dto.getPosition() != null) user.setPosition(dto.getPosition());
+        if (dto.getRemark() != null) user.setRemark(dto.getRemark());
         if (dto.getStatus() != null) user.setStatus(dto.getStatus());
         return updateById(user);
     }
@@ -131,6 +135,32 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public Boolean updateCurrentUserProfile(UserProfileDTO dto) {
+        Long userId = UserContextUtil.getUserId();
+        if (userId == null) throw new BusinessException(ResultCode.UNAUTHORIZED);
+        User user = getById(userId);
+        if (user == null || !Integer.valueOf(1).equals(user.getStatus())) throw new BusinessException(ResultCode.UNAUTHORIZED);
+        if (dto.getUsername() != null && !dto.getUsername().equals(user.getUsername())) {
+            User duplicate = getByUsername(dto.getUsername());
+            if (duplicate != null && !duplicate.getId().equals(userId)) throw new BusinessException("Username already exists");
+            user.setUsername(dto.getUsername());
+        }
+        if (dto.getEmail() != null && !dto.getEmail().equals(user.getEmail())) {
+            User duplicate = baseMapper.selectByEmail(dto.getEmail());
+            if (duplicate != null && !duplicate.getId().equals(userId)) throw new BusinessException("Email already exists");
+            user.setEmail(dto.getEmail());
+        }
+        if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+        if (dto.getAvatar() != null) user.setAvatar(dto.getAvatar());
+        if (dto.getRealName() != null) user.setRealName(dto.getRealName());
+        if (dto.getDepartment() != null) user.setDepartment(dto.getDepartment());
+        if (dto.getPosition() != null) user.setPosition(dto.getPosition());
+        if (dto.getRemark() != null) user.setRemark(dto.getRemark());
+        return updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public LoginVO login(String username, String password) {
         User user = getByUsername(username);
         if (user == null) throw new BusinessException(ResultCode.USER_NOT_EXIST);
@@ -174,6 +204,19 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return toUserVO(user);
     }
 
+    @Override
+    public UserStatisticsVO getUserStatistics(Long userId) {
+        if (userId == null || getById(userId) == null) throw new BusinessException("User does not exist");
+        return UserStatisticsVO.builder()
+                .documentCount(zeroIfNull(baseMapper.countDocumentsByAuthorId(userId)))
+                .likeCount(zeroIfNull(baseMapper.sumLikesByAuthorId(userId)))
+                .viewCount(zeroIfNull(baseMapper.sumViewsByAuthorId(userId)))
+                .commentCount(0L)
+                .build();
+    }
+
+    private long zeroIfNull(Long value) { return value == null ? 0L : value; }
+
     private LoginVO buildLoginVO(User user) {
         return LoginVO.builder()
                 .accessToken(jwtTokenUtil.generateAccessToken(user.getId()))
@@ -194,6 +237,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         vo.setId(user.getId()); vo.setUsername(user.getUsername()); vo.setEmail(user.getEmail());
         vo.setPhone(user.getPhone()); vo.setAvatar(user.getAvatar()); vo.setRealName(user.getRealName());
         vo.setDepartment(user.getDepartment()); vo.setPosition(user.getPosition()); vo.setStatus(user.getStatus());
+        vo.setRemark(user.getRemark());
         vo.setLastLoginTime(user.getLastLoginTime()); vo.setLastLoginIp(user.getLastLoginIp());
         vo.setCreateTime(user.getCreateTime()); vo.setUpdateTime(user.getUpdateTime());
         return vo;

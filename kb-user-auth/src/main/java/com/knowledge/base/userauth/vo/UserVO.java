@@ -17,6 +17,7 @@ public class UserVO implements Serializable {
     private String realName;
     private String department;
     private String position;
+    private String remark;
     private Integer status;
     private java.time.LocalDateTime lastLoginTime;
     private String lastLoginIp;

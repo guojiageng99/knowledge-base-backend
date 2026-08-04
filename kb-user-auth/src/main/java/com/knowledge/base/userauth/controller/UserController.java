@@ -3,8 +3,10 @@ package com.knowledge.base.userauth.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.userauth.dto.UserDTO;
+import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.UserVO;
+import com.knowledge.base.userauth.vo.UserStatisticsVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,17 @@ public class UserController {
 
     @PutMapping
     public Result<Boolean> updateUser(@Valid @RequestBody UserDTO dto) { return Result.success("User updated successfully", userService.updateUser(dto)); }
+
+    @PutMapping("/profile")
+    public Result<Boolean> updateProfile(@Valid @RequestBody UserProfileDTO dto) {
+        return Result.success("Profile updated successfully", userService.updateCurrentUserProfile(dto));
+    }
+
+    @GetMapping("/me/stats")
+    public Result<UserStatisticsVO> getMyStatistics() {
+        Long userId = com.knowledge.base.common.utils.UserContextUtil.getUserId();
+        return Result.success(userService.getUserStatistics(userId));
+    }
 
     @DeleteMapping("/{userId}")
     public Result<Boolean> deleteUser(@PathVariable Long userId) { return Result.success("User deleted successfully", userService.deleteUser(userId)); }
