@@ -14,6 +14,20 @@ spring:
   sql:
     init:
       mode: never
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 10s
+    socket-timeout: 30s
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
 mybatis-plus:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.knowledge.base.ai.entity
@@ -41,3 +55,31 @@ deepseek:
   temperature: ${DEEPSEEK_TEMPERATURE:0.7}
 ai:
   default-model: ${AI_DEFAULT_MODEL:qwen}
+rag:
+  enabled: ${RAG_ENABLED:true}
+  chunking:
+    chunk-size: ${RAG_CHUNK_SIZE:512}
+    chunk-overlap: ${RAG_CHUNK_OVERLAP:64}
+  embedding:
+    model: ${RAG_EMBEDDING_MODEL:text-embedding-v3}
+    dimension: ${RAG_EMBEDDING_DIMENSION:1024}
+    cache-ttl-seconds: ${RAG_EMBEDDING_CACHE_TTL:86400}
+  retrieval:
+    default-top-k: ${RAG_RETRIEVAL_TOP_K:5}
+    hybrid-top-k: ${RAG_HYBRID_TOP_K:20}
+    rrf-c: ${RAG_RRF_C:60}
+  rerank:
+    enabled: ${RAG_RERANK_ENABLED:false}
+    model: ${RAG_RERANK_MODEL:qwen}
+  index:
+    name: ${RAG_INDEX_NAME:kb_chunk}
+    shards: ${RAG_INDEX_SHARDS:1}
+    replicas: ${RAG_INDEX_REPLICAS:0}
+  reindex:
+    batch-size: ${RAG_REINDEX_BATCH_SIZE:10}
+    max-retries: ${RAG_REINDEX_MAX_RETRIES:3}
+  rabbit:
+    enabled: ${RAG_RABBIT_ENABLED:false}
+document:
+  service:
+    url: ${DOCUMENT_SERVICE_URL:http://localhost:8082/api/document}

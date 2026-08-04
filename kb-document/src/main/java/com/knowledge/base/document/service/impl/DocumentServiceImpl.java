@@ -56,6 +56,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final DocumentContentService documentContentService;
     private final DocumentAccessService documentAccessService;
     private final com.knowledge.base.document.service.FileUploadService fileUploadService;
+    private final com.knowledge.base.document.feign.RagFeignClient ragFeignClient;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -96,6 +97,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             addTagsToDocument(document.getId(), dto.getTagIds());
         }
         documentVersionService.createVersion(document.getId(), null, 1L);
+        triggerRagReindex(document.getId());
         return document.getId();
     }
 
@@ -115,6 +117,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         }
         if (updated) {
             documentVersionService.createVersion(dto.getId(), buildChangeDescription(existing, document), 1L);
+            triggerRagReindex(dto.getId());
         }
         return updated;
     }
@@ -126,7 +129,9 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         Document document = requireDocument(documentId);
         deleteContent(document);
         clearDocumentTags(documentId);
-        return documentMapper.deleteById(documentId) > 0;
+        boolean deleted = documentMapper.deleteById(documentId) > 0;
+        if (deleted) triggerRagDelete(documentId);
+        return deleted;
     }
 
     @Override
@@ -311,6 +316,20 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
                 log.warn("MongoDB content deletion failed for document {}.", document.getId());
             }
         }
+    }
+
+    private void triggerRagReindex(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { ragFeignClient.reindexDocument(documentId); }
+            catch (Exception exception) { log.warn("RAG reindex trigger failed for document {}", documentId, exception); }
+        });
+    }
+
+    private void triggerRagDelete(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { ragFeignClient.removeFromIndex(documentId); }
+            catch (Exception exception) { log.warn("RAG delete trigger failed for document {}", documentId, exception); }
+        });
     }
 
     private DocumentVO toVO(Document document, boolean includeContent) {

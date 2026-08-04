@@ -106,6 +106,10 @@ file:
       - md
     max-size: 104857600
 
+ai:
+  service:
+    url: ${AI_SERVICE_URL:http://localhost:8086/api/ai}
+
 knife4j:
   enable: true
   setting:

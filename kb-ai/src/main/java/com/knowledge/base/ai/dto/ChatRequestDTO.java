@@ -10,4 +10,5 @@ public class ChatRequestDTO {
     private Long conversationId;
     private String model;
     private String systemPrompt;
+    private boolean enableRag;
 }
