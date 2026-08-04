@@ -10,22 +10,34 @@ import com.knowledge.base.common.result.ResultCode;
 import com.knowledge.base.common.utils.JwtTokenUtil;
 import com.knowledge.base.common.utils.UserContextUtil;
 import com.knowledge.base.userauth.entity.User;
+import com.knowledge.base.userauth.entity.Team;
+import com.knowledge.base.userauth.entity.TeamMember;
+import com.knowledge.base.userauth.dto.RegisterDTO;
 import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.mapper.UserMapper;
 import com.knowledge.base.userauth.mapper.RoleMapper;
 import com.knowledge.base.userauth.mapper.PermissionMapper;
+import com.knowledge.base.userauth.mapper.TeamMapper;
+import com.knowledge.base.userauth.mapper.TeamMemberMapper;
+import com.knowledge.base.userauth.service.EmailService;
 import com.knowledge.base.userauth.service.SecurityConfigService;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.LoginVO;
+import com.knowledge.base.userauth.vo.RegisterVO;
 import com.knowledge.base.userauth.vo.UserVO;
 import com.knowledge.base.userauth.vo.UserStatisticsVO;
+import com.knowledge.base.userauth.util.VerificationTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +48,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
     private final SecurityConfigService securityConfigService;
+    private final EmailService emailService;
+    private final VerificationTokenUtil verificationTokenUtil;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final TeamMapper teamMapper;
+    private final TeamMemberMapper teamMemberMapper;
+
+    private static final String RESET_CODE_KEY_PREFIX = "password:reset:code:";
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     @Override
     public User getByUsername(String username) {
@@ -144,6 +164,110 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public RegisterVO register(RegisterDTO registerDTO) {
+        if (!securityConfigService.isRegistrationEnabled()) {
+            throw new BusinessException("Registration is currently disabled");
+        }
+        if (!registerDTO.getPassword().equals(registerDTO.getConfirmPassword())) {
+            throw new BusinessException("Passwords do not match");
+        }
+        securityConfigService.validatePassword(registerDTO.getPassword());
+
+        String username = registerDTO.getUsername().trim();
+        String email = normalizeEmail(registerDTO.getEmail());
+        String phone = hasText(registerDTO.getPhone()) ? registerDTO.getPhone().trim() : null;
+        if (baseMapper.selectByUsername(username) != null) throw new BusinessException("Username already exists");
+        if (baseMapper.selectByEmail(email) != null) throw new BusinessException("Email already registered");
+        if (phone != null && baseMapper.selectByPhone(phone) != null) throw new BusinessException("Phone number already registered");
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setRealName(registerDTO.getRealName().trim());
+        user.setStatus(0);
+        user.setEmailVerified(0);
+        String activationToken = verificationTokenUtil.generateToken();
+        user.setActivationToken(activationToken);
+        user.setActivationTokenExpiry(verificationTokenUtil.calculateExpiryTime());
+        if (!save(user)) throw new BusinessException("Failed to create user");
+
+        if (registerDTO.getTeamId() != null) {
+            Team team = teamMapper.selectById(registerDTO.getTeamId());
+            if (team == null || !Integer.valueOf(1).equals(team.getStatus())) {
+                throw new BusinessException("Selected team does not exist or is disabled");
+            }
+            TeamMember member = new TeamMember();
+            member.setTeamId(team.getId());
+            member.setUserId(user.getId());
+            member.setMemberRole("member");
+            member.setJoinTime(LocalDateTime.now());
+            member.setCreateBy(user.getId());
+            if (teamMemberMapper.insert(member) != 1) throw new BusinessException("Failed to join selected team");
+            teamMapper.incrementMemberCount(team.getId());
+        }
+
+        emailService.sendActivationEmail(user.getEmail(), user.getUsername(), activationToken);
+        return RegisterVO.builder().userId(user.getId()).emailVerificationRequired(true)
+                .message("Registration succeeded. Please check your email to activate the account.").build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String verifyEmail(String token) {
+        if (!hasText(token)) throw new BusinessException("Invalid activation link");
+        User user = baseMapper.selectByActivationToken(token.trim());
+        if (user == null) throw new BusinessException("Invalid activation link");
+        if (Integer.valueOf(1).equals(user.getEmailVerified())) return "Account is already activated";
+        if (verificationTokenUtil.isTokenExpired(user.getActivationTokenExpiry())) {
+            throw new BusinessException("Activation link has expired. Please register again");
+        }
+        user.setEmailVerified(1);
+        user.setStatus(1);
+        user.setActivationToken(null);
+        user.setActivationTokenExpiry(null);
+        if (!updateById(user)) throw new BusinessException("Failed to activate account");
+        return "Account activated successfully. You can now sign in";
+    }
+
+    @Override
+    public void sendResetCode(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (baseMapper.selectByEmail(normalizedEmail) == null) throw new BusinessException("Email is not registered");
+        String redisKey = resetCodeKey(normalizedEmail);
+        Long ttl = stringRedisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
+        if (ttl != null && ttl > 540) {
+            throw new BusinessException("A verification code was already sent. Try again in " + (ttl - 540) + " seconds");
+        }
+        String code = String.format(Locale.ROOT, "%06d", SECURE_RANDOM.nextInt(1_000_000));
+        stringRedisTemplate.opsForValue().set(redisKey, code, 10, TimeUnit.MINUTES);
+        emailService.sendResetCodeEmail(normalizedEmail, code);
+    }
+
+    @Override
+    public boolean verifyResetCode(String email, String code) {
+        String storedCode = stringRedisTemplate.opsForValue().get(resetCodeKey(normalizeEmail(email)));
+        if (storedCode == null) throw new BusinessException("Verification code has expired. Request a new one");
+        if (!storedCode.equals(code)) throw new BusinessException("Invalid verification code");
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPassword(String email, String code, String newPassword) {
+        String normalizedEmail = normalizeEmail(email);
+        verifyResetCode(normalizedEmail, code);
+        securityConfigService.validatePassword(newPassword);
+        User user = baseMapper.selectByEmail(normalizedEmail);
+        if (user == null) throw new BusinessException("User does not exist");
+        user.setPassword(passwordEncoder.encode(newPassword));
+        if (!updateById(user)) throw new BusinessException("Failed to reset password");
+        stringRedisTemplate.delete(resetCodeKey(normalizedEmail));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean updateCurrentUserProfile(UserProfileDTO dto) {
         Long userId = UserContextUtil.getUserId();
         if (userId == null) throw new BusinessException(ResultCode.UNAUTHORIZED);
@@ -227,14 +351,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private long zeroIfNull(Long value) { return value == null ? 0L : value; }
 
     private void validatePassword(String password) {
-        int minimumLength = securityConfigService.getPasswordMinLength();
-        if (!org.springframework.util.StringUtils.hasText(password) || password.length() < minimumLength) {
-            throw new BusinessException("Password must contain at least " + minimumLength + " characters");
-        }
-        if (securityConfigService.isRequireSpecialChar() && password.chars().noneMatch(character -> !Character.isLetterOrDigit(character))) {
-            throw new BusinessException("Password must contain a special character");
-        }
+        securityConfigService.validatePassword(password);
     }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String resetCodeKey(String email) { return RESET_CODE_KEY_PREFIX + email; }
+
+    private boolean hasText(String value) { return value != null && !value.trim().isEmpty(); }
 
     private LoginVO buildLoginVO(User user) {
         return LoginVO.builder()

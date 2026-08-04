@@ -13,6 +13,9 @@
         <result column="position" property="position"/>
         <result column="remark" property="remark"/>
         <result column="status" property="status"/>
+        <result column="email_verified" property="emailVerified"/>
+        <result column="activation_token" property="activationToken"/>
+        <result column="activation_token_expiry" property="activationTokenExpiry"/>
         <result column="last_login_time" property="lastLoginTime"/>
         <result column="last_login_ip" property="lastLoginIp"/>
         <result column="create_time" property="createTime"/>
@@ -21,10 +24,11 @@
         <result column="update_by" property="updateBy"/>
         <result column="deleted" property="deleted"/>
     </resultMap>
-    <sql id="Base_Column_List">id, username, password, email, phone, avatar, real_name, department, position, remark, status, last_login_time, last_login_ip, create_time, update_time, create_by, update_by, deleted</sql>
+    <sql id="Base_Column_List">id, username, password, email, phone, avatar, real_name, department, position, remark, status, email_verified, activation_token, activation_token_expiry, last_login_time, last_login_ip, create_time, update_time, create_by, update_by, deleted</sql>
     <select id="selectByUsername" resultMap="BaseResultMap">SELECT <include refid="Base_Column_List"/> FROM kb_user WHERE username = #{username} AND deleted = 0 LIMIT 1</select>
     <select id="selectByEmail" resultMap="BaseResultMap">SELECT <include refid="Base_Column_List"/> FROM kb_user WHERE email = #{email} AND deleted = 0 LIMIT 1</select>
     <select id="selectByPhone" resultMap="BaseResultMap">SELECT <include refid="Base_Column_List"/> FROM kb_user WHERE phone = #{phone} AND deleted = 0 LIMIT 1</select>
+    <select id="selectByActivationToken" resultMap="BaseResultMap">SELECT <include refid="Base_Column_List"/> FROM kb_user WHERE activation_token = #{activationToken} AND deleted = 0 LIMIT 1</select>
     <select id="countDocumentsByAuthorId" resultType="java.lang.Long">SELECT COUNT(*) FROM kb_document WHERE author_id = #{authorId} AND deleted = 0</select>
     <select id="sumLikesByAuthorId" resultType="java.lang.Long">SELECT COALESCE(SUM(like_count), 0) FROM kb_document WHERE author_id = #{authorId} AND deleted = 0</select>
     <select id="sumViewsByAuthorId" resultType="java.lang.Long">SELECT COALESCE(SUM(view_count), 0) FROM kb_document WHERE author_id = #{authorId} AND deleted = 0</select>

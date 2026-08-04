@@ -23,6 +23,9 @@ public class User extends BaseEntity {
     private String position;
     private String remark;
     private Integer status;
+    private Integer emailVerified;
+    private String activationToken;
+    private LocalDateTime activationTokenExpiry;
     private LocalDateTime lastLoginTime;
     private String lastLoginIp;
 

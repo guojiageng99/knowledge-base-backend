@@ -14,6 +14,8 @@ public interface UserMapper extends BaseMapper<User> {
 
     User selectByPhone(@Param("phone") String phone);
 
+    User selectByActivationToken(@Param("activationToken") String activationToken);
+
     Long countDocumentsByAuthorId(@Param("authorId") Long authorId);
     Long sumLikesByAuthorId(@Param("authorId") Long authorId);
     Long sumViewsByAuthorId(@Param("authorId") Long authorId);
