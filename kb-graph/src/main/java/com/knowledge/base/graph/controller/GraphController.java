@@ -2,10 +2,15 @@ package com.knowledge.base.graph.controller;
 
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.graph.dto.GraphBuildRequest;
+import com.knowledge.base.graph.dto.GraphStatsDTO;
+import com.knowledge.base.graph.dto.TraverseResultDTO;
 import com.knowledge.base.graph.service.GraphService;
 import com.knowledge.base.graph.vo.GraphDataVO;
 import com.knowledge.base.graph.vo.GraphEdgeVO;
 import com.knowledge.base.graph.vo.GraphNodeVO;
+import com.knowledge.base.graph.vo.GraphPathVO;
+import com.knowledge.base.graph.vo.GraphRelationVO;
+import com.knowledge.base.graph.vo.GraphCommunityVO;
 import com.knowledge.base.graph.vo.KagContextVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -29,7 +34,11 @@ public class GraphController {
     @GetMapping("/nodes") public Result<List<GraphNodeVO>> nodes(@RequestParam(required = false) String type) { return Result.success(graphService.getNodes(type)); }
     @GetMapping("/edges") public Result<List<GraphEdgeVO>> edges(@RequestParam(required = false) String sourceType, @RequestParam(required = false) String targetType) { return Result.success(graphService.getEdges(sourceType, targetType)); }
     @GetMapping("/search") public Result<GraphDataVO> search(@RequestParam String keyword) { return Result.success(graphService.searchGraph(keyword)); }
-    @GetMapping("/path") public Result<GraphDataVO> path(@RequestParam String sourceId, @RequestParam String targetId, @RequestParam(defaultValue = "3") Integer maxDepth) { return Result.success(graphService.analyzePath(sourceId, targetId, maxDepth)); }
+    @GetMapping("/path") public Result<GraphPathVO> path(@RequestParam String sourceId, @RequestParam String targetId, @RequestParam(defaultValue = "3") Integer maxDepth) { return Result.success(graphService.analyzePath(sourceId, targetId, maxDepth)); }
+    @GetMapping("/node/{nodeId}/relations") public Result<List<GraphRelationVO>> nodeRelations(@PathVariable String nodeId) { return Result.success(graphService.getNodeRelations(nodeId)); }
+    @GetMapping("/traverse") public Result<List<TraverseResultDTO>> traverse(@RequestParam String entityName, @RequestParam(defaultValue = "2") Integer maxHops, @RequestParam(defaultValue = "20") Integer limit) { return Result.success(graphService.traverseEntity(entityName, maxHops, limit)); }
+    @GetMapping("/statistics") public Result<GraphStatsDTO> statistics() { return Result.success(graphService.getGraphStatistics()); }
+    @GetMapping("/community") public Result<List<GraphCommunityVO>> community(@RequestParam(defaultValue = "degree") String algorithm) { return Result.success(graphService.detectCommunity(algorithm)); }
     @GetMapping("/internal/context") public Result<KagContextVO> context(@RequestParam String query) { return Result.success(graphService.retrieveKagContext(query)); }
     @PostMapping("/internal/rebuild") public Result<Void> rebuild(@RequestBody GraphBuildRequest request) { graphService.rebuildDocument(request); return Result.success(); }
     @DeleteMapping("/internal/documents/{documentId}") public Result<Void> delete(@PathVariable Long documentId) { graphService.deleteDocument(documentId); return Result.success(); }

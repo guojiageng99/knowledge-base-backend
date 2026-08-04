@@ -4,11 +4,17 @@ import com.knowledge.base.graph.dto.ChunkEntityMappingDTO;
 import com.knowledge.base.graph.dto.ChunkPropsDTO;
 import com.knowledge.base.graph.dto.EntityMergeDTO;
 import com.knowledge.base.graph.dto.GraphBuildRequest;
+import com.knowledge.base.graph.dto.GraphStatsDTO;
 import com.knowledge.base.graph.dto.RelationMergeDTO;
+import com.knowledge.base.graph.dto.TraverseResultDTO;
+import com.knowledge.base.graph.repository.CustomGraphRepository;
 import com.knowledge.base.graph.service.GraphService;
 import com.knowledge.base.graph.vo.GraphDataVO;
 import com.knowledge.base.graph.vo.GraphEdgeVO;
 import com.knowledge.base.graph.vo.GraphNodeVO;
+import com.knowledge.base.graph.vo.GraphPathVO;
+import com.knowledge.base.graph.vo.GraphRelationVO;
+import com.knowledge.base.graph.vo.GraphCommunityVO;
 import com.knowledge.base.graph.vo.KagContextVO;
 import lombok.RequiredArgsConstructor;
 import org.neo4j.driver.Record;
@@ -27,6 +33,7 @@ import java.util.Map;
 public class GraphServiceImpl implements GraphService {
     private static final int MAX_GRAPH_NODES = 500;
     private final Neo4jClient neo4jClient;
+    private final CustomGraphRepository customGraphRepository;
 
     @Override
     public GraphDataVO getGraphData(String type) {
@@ -73,7 +80,7 @@ public class GraphServiceImpl implements GraphService {
     }
 
     @Override
-    public GraphDataVO analyzePath(String sourceId, String targetId, Integer maxDepth) {
+    public GraphPathVO analyzePath(String sourceId, String targetId, Integer maxDepth) {
         int depth = Math.min(Math.max(maxDepth == null ? 3 : maxDepth, 1), 6);
         String cypher = "MATCH path = shortestPath((source)-[*1.." + depth + "]-(target)) "
                 + "WHERE elementId(source) = $sourceId AND elementId(target) = $targetId "
@@ -81,12 +88,41 @@ public class GraphServiceImpl implements GraphService {
                 + "RETURN elementId(n) AS id, labels(n) AS labels, properties(n) AS props";
         List<GraphNodeVO> nodes = neo4jClient.query(cypher).bind(sourceId).to("sourceId").bind(targetId).to("targetId")
                 .fetch().all().stream().map(this::node).toList();
-        if (nodes.isEmpty()) return GraphDataVO.builder().nodes(List.of()).edges(List.of()).nodeCount(0L).edgeCount(0L).build();
+        if (nodes.isEmpty()) return GraphPathVO.builder().nodes(List.of()).edges(List.of()).hops(0).build();
         List<String> ids = nodes.stream().map(GraphNodeVO::getId).toList();
         String edgeCypher = "MATCH (source)-[r]-(target) WHERE elementId(source) IN $ids AND elementId(target) IN $ids "
                 + "RETURN elementId(r) AS id, elementId(source) AS source, elementId(target) AS target, type(r) AS relation, properties(r) AS props";
         List<GraphEdgeVO> edges = neo4jClient.query(edgeCypher).bind(ids).to("ids").fetch().all().stream().map(this::edge).toList();
-        return GraphDataVO.builder().nodes(nodes).edges(edges).nodeCount((long) nodes.size()).edgeCount((long) edges.size()).build();
+        return GraphPathVO.builder().nodes(nodes).edges(edges).hops(edges.size()).build();
+    }
+
+    @Override
+    public List<GraphRelationVO> getNodeRelations(String nodeId) {
+        String cypher = "MATCH (source)-[r]-(target) WHERE elementId(source) = $nodeId OR elementId(target) = $nodeId "
+                + "RETURN elementId(r) AS id, elementId(source) AS sourceId, coalesce(source.name, source.title, source.chunkId) AS sourceName, "
+                + "elementId(target) AS targetId, coalesce(target.name, target.title, target.chunkId) AS targetName, type(r) AS relation, properties(r) AS props LIMIT 200";
+        return neo4jClient.query(cypher).bind(nodeId).to("nodeId").fetch().all().stream().map(row -> {
+            @SuppressWarnings("unchecked") Map<String, Object> properties = (Map<String, Object>) row.getOrDefault("props", Map.of());
+            Object weight = properties.get("weight");
+            return GraphRelationVO.builder().id(string(row.get("id"))).sourceId(string(row.get("sourceId"))).sourceName(string(row.get("sourceName")))
+                    .targetId(string(row.get("targetId"))).targetName(string(row.get("targetName"))).relation(string(row.get("relation")))
+                    .label(string(properties.getOrDefault("type", row.get("relation")))).weight(weight instanceof Number number ? number.doubleValue() : 1D).properties(properties).build();
+        }).toList();
+    }
+
+    @Override
+    public List<TraverseResultDTO> traverseEntity(String entityName, Integer maxHops, Integer limit) {
+        return customGraphRepository.traverseFromEntity(entityName, maxHops == null ? 2 : maxHops, limit == null ? 20 : limit);
+    }
+
+    @Override
+    public GraphStatsDTO getGraphStatistics() { return customGraphRepository.getGraphStatistics(); }
+
+    @Override
+    public List<GraphCommunityVO> detectCommunity(String algorithm) {
+        String selected = hasText(algorithm) ? algorithm : "degree";
+        return customGraphRepository.detectCommunities(2).stream().map(community -> GraphCommunityVO.builder()
+                .communityId(community.getCommunityId()).entityNames(community.getEntityNames()).size(community.getSize()).algorithm(selected).build()).toList();
     }
 
     @Override
@@ -114,15 +150,11 @@ public class GraphServiceImpl implements GraphService {
         }
         deleteDocument(request.getDocument().getDocId());
         var document = request.getDocument();
-        neo4jClient.query("MERGE (d:KnowledgeDocument {docId: $docId}) SET d.title=$title, d.summary=$summary, d.categoryId=$categoryId, "
-                        + "d.authorId=$authorId, d.authorName=$authorName, d.status=$status, d.documentType=$documentType, d.tags=$tags, d.updatedAt=datetime()")
-                .bind(document.getDocId()).to("docId").bind(document.getTitle()).to("title").bind(document.getSummary()).to("summary")
-                .bind(document.getCategoryId()).to("categoryId").bind(document.getAuthorId()).to("authorId").bind(document.getAuthorName()).to("authorName")
-                .bind(document.getStatus()).to("status").bind(document.getDocumentType()).to("documentType").bind(document.getTags()).to("tags").run();
+        customGraphRepository.createDocumentNode(document);
         for (ChunkPropsDTO chunk : values(request.getChunks())) createChunk(document.getDocId(), chunk);
-        for (EntityMergeDTO entity : values(request.getEntities())) mergeEntity(entity);
-        for (RelationMergeDTO relation : values(request.getRelations())) mergeRelation(relation);
-        for (ChunkEntityMappingDTO mention : values(request.getMentions())) mergeMention(mention);
+        customGraphRepository.mergeEntities(request.getEntities());
+        customGraphRepository.mergeRelations(request.getRelations());
+        customGraphRepository.connectChunksToEntities(request.getMentions());
     }
 
     @Override
@@ -136,10 +168,9 @@ public class GraphServiceImpl implements GraphService {
 
     private void createChunk(Long docId, ChunkPropsDTO chunk) {
         if (chunk == null || !hasText(chunk.getChunkId())) return;
-        neo4jClient.query("MERGE (c:DocumentChunk {chunkId: $chunkId}) SET c.docId=$docId, c.content=$content, c.heading=$heading, c.chunkIndex=$chunkIndex, c.totalChunks=$totalChunks, c.categoryId=$categoryId "
-                        + "WITH c MATCH (d:KnowledgeDocument {docId: $docId}) MERGE (d)-[r:HAS_CHUNK]->(c) SET r.chunkIndex=$chunkIndex")
-                .bind(chunk.getChunkId()).to("chunkId").bind(docId).to("docId").bind(chunk.getContent()).to("content").bind(chunk.getHeading()).to("heading")
-                .bind(chunk.getChunkIndex()).to("chunkIndex").bind(chunk.getTotalChunks()).to("totalChunks").bind(chunk.getCategoryId()).to("categoryId").run();
+        chunk.setDocId(docId);
+        customGraphRepository.createChunkNode(chunk);
+        customGraphRepository.createHasChunkRelation(docId, chunk.getChunkId(), chunk.getChunkIndex());
     }
 
     private void mergeEntity(EntityMergeDTO entity) {
