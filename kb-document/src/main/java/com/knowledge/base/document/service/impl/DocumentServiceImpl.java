@@ -58,6 +58,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final com.knowledge.base.document.service.FileUploadService fileUploadService;
     private final com.knowledge.base.document.feign.RagFeignClient ragFeignClient;
     private final com.knowledge.base.document.feign.KAGFeignClient kagFeignClient;
+    private final com.knowledge.base.document.feign.SearchFeignClient searchFeignClient;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -99,6 +100,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         }
         documentVersionService.createVersion(document.getId(), null, 1L);
         triggerRagReindex(document.getId());
+        if (Objects.equals(document.getStatus(), 1)) triggerSearchIndex(document.getId());
         if (Objects.equals(document.getStatus(), 1)) triggerGraphBuild(document.getId());
         return document.getId();
     }
@@ -120,6 +122,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (updated) {
             documentVersionService.createVersion(dto.getId(), buildChangeDescription(existing, document), 1L);
             triggerRagReindex(dto.getId());
+            if (Objects.equals(dto.getStatus(), 1)) triggerSearchIndex(dto.getId());
             if (Objects.equals(dto.getStatus(), 1)) triggerGraphBuild(dto.getId());
         }
         return updated;
@@ -133,7 +136,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         deleteContent(document);
         clearDocumentTags(documentId);
         boolean deleted = documentMapper.deleteById(documentId) > 0;
-        if (deleted) { triggerRagDelete(documentId); triggerGraphDelete(documentId); }
+        if (deleted) { triggerRagDelete(documentId); triggerGraphDelete(documentId); triggerSearchDelete(documentId); }
         return deleted;
     }
 
@@ -204,7 +207,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean publishDocument(Long documentId) { boolean published = updateStatus(documentId, 1, true); if (published) triggerGraphBuild(documentId); return published; }
+    public Boolean publishDocument(Long documentId) { boolean published = updateStatus(documentId, 1, true); if (published) { triggerGraphBuild(documentId); triggerSearchIndex(documentId); } return published; }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -287,6 +290,29 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             try { kagFeignClient.deleteGraph(documentId); }
             catch (RuntimeException exception) { log.warn("Failed to trigger graph cleanup for document {}", documentId, exception); }
         });
+    }
+
+    private void triggerSearchIndex(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { searchFeignClient.indexDocument(toSearchData(getDocumentById(documentId))); }
+            catch (RuntimeException exception) { log.warn("Failed to index document {} for search", documentId, exception); }
+        });
+    }
+
+    private void triggerSearchDelete(Long documentId) {
+        CompletableFuture.runAsync(() -> {
+            try { searchFeignClient.deleteDocument(documentId); }
+            catch (RuntimeException exception) { log.warn("Failed to remove document {} from search", documentId, exception); }
+        });
+    }
+
+    private java.util.Map<String, Object> toSearchData(DocumentVO document) {
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("id", document.getId()); data.put("title", document.getTitle()); data.put("summary", document.getSummary()); data.put("content", document.getContent());
+        data.put("categoryId", document.getCategoryId()); data.put("categoryName", document.getCategoryName()); data.put("tags", document.getTags()); data.put("authorId", document.getAuthorId());
+        data.put("authorName", document.getAuthorName()); data.put("status", document.getStatus()); data.put("viewCount", document.getViewCount()); data.put("likeCount", document.getLikeCount());
+        data.put("commentCount", document.getCommentCount()); data.put("isPublic", document.getIsPublic()); data.put("publishTime", document.getPublishTime()); data.put("createTime", document.getCreateTime()); data.put("updateTime", document.getUpdateTime());
+        return data;
     }
 
     private void saveContent(Document document, String content) {

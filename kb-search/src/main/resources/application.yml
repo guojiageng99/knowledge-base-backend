@@ -1,0 +1,27 @@
+server:
+  port: 8083
+  servlet:
+    context-path: /api/search
+spring:
+  application:
+    name: kb-search
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/kb_search?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+    connection-timeout: 10s
+    socket-timeout: 30s
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+search:
+  document-index: ${SEARCH_DOCUMENT_INDEX:kb_document}
+  document-service-url: ${DOCUMENT_SERVICE_URL:http://localhost:8082/api/document}
+  ai-service-url: ${AI_SERVICE_URL:http://localhost:8086/api/ai}

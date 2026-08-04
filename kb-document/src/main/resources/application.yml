@@ -109,6 +109,9 @@ file:
 ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8086/api/ai}
+search:
+  service:
+    url: ${SEARCH_SERVICE_URL:http://localhost:8083/api/search}
 
 pdf:
   font:
