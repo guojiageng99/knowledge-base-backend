@@ -26,6 +26,7 @@ public class DocumentVO implements Serializable {
     private Integer isRecommend;
     private Long viewCount;
     private Long likeCount;
+    private Boolean isLiked;
     private Long favoriteCount;
     private Long commentCount;
     private LocalDateTime publishTime;

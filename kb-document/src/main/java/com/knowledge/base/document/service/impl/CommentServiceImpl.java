@@ -14,6 +14,7 @@ import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.mapper.CommentMapper;
 import com.knowledge.base.document.mapper.DocumentMapper;
 import com.knowledge.base.document.service.CommentService;
+import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.CommentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +31,6 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> implements CommentService {
 
-    private static final long SYSTEM_USER_ID = 1L;
     private static final int COMMENT_TARGET_TYPE = 2;
 
     private final CommentMapper commentMapper;
@@ -55,8 +55,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         comment.setParentId(parent == null ? 0L : parent.getId());
         comment.setRootId(parent == null ? 0L : (parent.getRootId() == null || parent.getRootId() == 0 ? parent.getId() : parent.getRootId()));
         comment.setContent(dto.getContent());
-        comment.setCommenterId(SYSTEM_USER_ID);
-        comment.setCommenterName("测试用户");
+        comment.setCommenterId(currentUserId());
+        comment.setCommenterName(currentUserName());
         comment.setCommenterAvatar("/avatar/default.png");
         comment.setReplyToUserId(dto.getReplyToUserId());
         comment.setReplyToUserName(parent == null ? null : parent.getCommenterName());
@@ -105,7 +105,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     public Boolean likeComment(Long commentId) {
         requireComment(commentId);
         int inserted = jdbcTemplate.update("INSERT IGNORE INTO tb_like (id, target_id, target_type, user_id, created_at) VALUES (?, ?, ?, ?, NOW())",
-                SnowflakeIdGenerator.nextId(), commentId, COMMENT_TARGET_TYPE, SYSTEM_USER_ID);
+                SnowflakeIdGenerator.nextId(), commentId, COMMENT_TARGET_TYPE, currentUserId());
         if (inserted == 0) {
             throw new BusinessException("已经点赞过了");
         }
@@ -119,7 +119,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     @Transactional(rollbackFor = Exception.class)
     public Boolean unlikeComment(Long commentId) {
         requireComment(commentId);
-        int deleted = jdbcTemplate.update("DELETE FROM tb_like WHERE target_id = ? AND user_id = ? AND target_type = ?", commentId, SYSTEM_USER_ID, COMMENT_TARGET_TYPE);
+        int deleted = jdbcTemplate.update("DELETE FROM tb_like WHERE target_id = ? AND user_id = ? AND target_type = ?", commentId, currentUserId(), COMMENT_TARGET_TYPE);
         if (deleted > 0) {
             commentMapper.decrementLikeCount(commentId);
             return true;
@@ -194,8 +194,18 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
 
     private boolean isLiked(Long commentId) {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM tb_like WHERE target_id = ? AND target_type = ? AND user_id = ?",
-                Integer.class, commentId, COMMENT_TARGET_TYPE, SYSTEM_USER_ID);
+                Integer.class, commentId, COMMENT_TARGET_TYPE, currentUserId());
         return count != null && count > 0;
+    }
+
+    private Long currentUserId() {
+        Long userId = UserContext.getCurrentUserId();
+        return userId == null ? 1L : userId;
+    }
+
+    private String currentUserName() {
+        String username = UserContext.getCurrentUserName();
+        return username == null ? "Test user" : username;
     }
 
     private CommentVO toVO(Comment comment) {

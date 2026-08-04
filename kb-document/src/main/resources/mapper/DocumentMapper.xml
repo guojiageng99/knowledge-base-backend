@@ -8,6 +8,9 @@
     <update id="incrementLikeCount">
         UPDATE kb_document SET like_count = like_count + 1 WHERE id = #{documentId} AND deleted = 0
     </update>
+    <update id="decrementLikeCount">
+        UPDATE kb_document SET like_count = GREATEST(like_count - 1, 0) WHERE id = #{documentId} AND deleted = 0
+    </update>
     <update id="incrementFavoriteCount">
         UPDATE kb_document SET favorite_count = favorite_count + 1 WHERE id = #{documentId} AND deleted = 0
     </update>

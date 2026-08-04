@@ -28,6 +28,7 @@ import com.knowledge.base.document.vo.DocumentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -49,6 +50,8 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> implements DocumentService {
 
+    private static final int DOCUMENT_TARGET_TYPE = 1;
+
     private final DocumentMapper documentMapper;
     private final DocumentTagMapper documentTagMapper;
     private final TagMapper tagMapper;
@@ -59,6 +62,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final com.knowledge.base.document.feign.RagFeignClient ragFeignClient;
     private final com.knowledge.base.document.feign.KAGFeignClient kagFeignClient;
     private final com.knowledge.base.document.feign.SearchFeignClient searchFeignClient;
+    private final JdbcTemplate jdbcTemplate;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -199,7 +203,36 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean likeDocument(Long documentId) { requireDocument(documentId); return documentMapper.incrementLikeCount(documentId) > 0; }
+    public Boolean likeDocument(Long documentId) {
+        requireDocument(documentId);
+        Long userId = currentUserId();
+        int inserted = jdbcTemplate.update(
+                "INSERT IGNORE INTO tb_like (id, target_id, target_type, user_id, created_at) VALUES (?, ?, ?, ?, NOW())",
+                SnowflakeIdGenerator.nextId(), documentId, DOCUMENT_TARGET_TYPE, userId);
+        if (inserted == 0) {
+            return true;
+        }
+        if (documentMapper.incrementLikeCount(documentId) <= 0) {
+            throw new BusinessException("Failed to update document like count");
+        }
+        return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Boolean unlikeDocument(Long documentId) {
+        requireDocument(documentId);
+        int deleted = jdbcTemplate.update(
+                "DELETE FROM tb_like WHERE target_id = ? AND target_type = ? AND user_id = ?",
+                documentId, DOCUMENT_TARGET_TYPE, currentUserId());
+        if (deleted == 0) {
+            return false;
+        }
+        if (documentMapper.decrementLikeCount(documentId) <= 0) {
+            throw new BusinessException("Failed to update document like count");
+        }
+        return true;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -377,6 +410,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     private DocumentVO toVO(Document document, boolean includeContent) {
         DocumentVO result = BeanUtil.copyProperties(document, DocumentVO.class);
+        result.setIsLiked(isDocumentLiked(document.getId()));
         result.setAuthor(buildAuthorVO(document));
         if (includeContent && StringUtils.hasText(document.getContentId())) {
             try {
@@ -389,6 +423,18 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
             }
         }
         return result;
+    }
+
+    private boolean isDocumentLiked(Long documentId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM tb_like WHERE target_id = ? AND target_type = ? AND user_id = ?",
+                Integer.class, documentId, DOCUMENT_TARGET_TYPE, currentUserId());
+        return count != null && count > 0;
+    }
+
+    private Long currentUserId() {
+        Long userId = UserContext.getCurrentUserId();
+        return userId == null ? 1L : userId;
     }
 
     private AuthorVO buildAuthorVO(Document document) {

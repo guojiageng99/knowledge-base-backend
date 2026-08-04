@@ -19,6 +19,7 @@ public interface DocumentService extends IService<Document> {
     IPage<DocumentVO> pageDocuments(Long current, Long size, Long categoryId, String keyword, Integer status);
     String uploadDocumentFile(MultipartFile file);
     Boolean likeDocument(Long documentId);
+    Boolean unlikeDocument(Long documentId);
     Boolean favoriteDocument(Long documentId);
     Boolean publishDocument(Long documentId);
     Boolean archiveDocument(Long documentId);

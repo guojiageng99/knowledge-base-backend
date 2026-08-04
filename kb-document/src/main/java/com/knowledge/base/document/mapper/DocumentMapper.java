@@ -12,6 +12,8 @@ public interface DocumentMapper extends BaseMapper<Document> {
 
     int incrementLikeCount(@Param("documentId") Long documentId);
 
+    int decrementLikeCount(@Param("documentId") Long documentId);
+
     int incrementFavoriteCount(@Param("documentId") Long documentId);
 
     int decrementFavoriteCount(@Param("documentId") Long documentId);

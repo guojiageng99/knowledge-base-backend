@@ -94,6 +94,11 @@ public class DocumentController {
         return Result.success("Document liked successfully", documentService.likeDocument(documentId));
     }
 
+    @DeleteMapping("/{documentId}/like")
+    public Result<Boolean> unlikeDocument(@PathVariable Long documentId) {
+        return Result.success("Document unliked successfully", documentService.unlikeDocument(documentId));
+    }
+
     /**
      * Kept for clients created before the dedicated /favorite endpoints.
      * It now writes the favorite record as well as the aggregate count.
