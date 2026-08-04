@@ -62,8 +62,10 @@ public class ReviewNotificationListener {
         dto.setRelatedType("document");
         dto.setRelatedId(documentId);
         notificationService.sendNotification(dto);
-        messagingTemplate.convertAndSendToUser(String.valueOf(userId), "/queue/notifications",
-                payload(title, content, link, documentId));
+        if (isWebSocketEnabled()) {
+            messagingTemplate.convertAndSendToUser(String.valueOf(userId), "/queue/notifications",
+                    payload(title, content, link, documentId));
+        }
     }
 
     private Map<String, Object> payload(String title, String content, String link, Long documentId) {
@@ -87,6 +89,18 @@ public class ReviewNotificationListener {
         } catch (Exception e) {
             log.warn("Unable to query reviewers: {}", e.getMessage());
             return List.of();
+        }
+    }
+
+    private boolean isWebSocketEnabled() {
+        try {
+            String value = jdbcTemplate.queryForObject(
+                    "SELECT config_value FROM kb_system_config WHERE config_key = 'websocket.enabled' AND deleted = 0",
+                    String.class);
+            return value == null || "true".equalsIgnoreCase(value);
+        } catch (Exception exception) {
+            log.warn("Unable to read WebSocket notification setting: {}", exception.getMessage());
+            return true;
         }
     }
 }

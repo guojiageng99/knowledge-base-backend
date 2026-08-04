@@ -15,6 +15,7 @@ import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.mapper.UserMapper;
 import com.knowledge.base.userauth.mapper.RoleMapper;
 import com.knowledge.base.userauth.mapper.PermissionMapper;
+import com.knowledge.base.userauth.service.SecurityConfigService;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.LoginVO;
 import com.knowledge.base.userauth.vo.UserVO;
@@ -34,6 +35,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final JwtTokenUtil jwtTokenUtil;
     private final RoleMapper roleMapper;
     private final PermissionMapper permissionMapper;
+    private final SecurityConfigService securityConfigService;
 
     @Override
     public User getByUsername(String username) {
@@ -44,6 +46,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public boolean createUser(User user) {
         if (getByUsername(user.getUsername()) != null) throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
+        validatePassword(user.getPassword());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         if (user.getStatus() == null) user.setStatus(1);
         return save(user);
@@ -117,6 +120,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Transactional(rollbackFor = Exception.class)
     public Boolean resetPassword(Long userId, String newPassword) {
         if (!org.springframework.util.StringUtils.hasText(newPassword)) throw new BusinessException("New password is required");
+        validatePassword(newPassword);
         User user = getById(userId);
         if (user == null) throw new BusinessException("User does not exist");
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -133,6 +137,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException("Old password is incorrect");
         }
         if (!org.springframework.util.StringUtils.hasText(newPassword)) throw new BusinessException("New password is required");
+        validatePassword(newPassword);
         user.setPassword(passwordEncoder.encode(newPassword));
         return updateById(user);
     }
@@ -220,6 +225,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     private long zeroIfNull(Long value) { return value == null ? 0L : value; }
+
+    private void validatePassword(String password) {
+        int minimumLength = securityConfigService.getPasswordMinLength();
+        if (!org.springframework.util.StringUtils.hasText(password) || password.length() < minimumLength) {
+            throw new BusinessException("Password must contain at least " + minimumLength + " characters");
+        }
+        if (securityConfigService.isRequireSpecialChar() && password.chars().noneMatch(character -> !Character.isLetterOrDigit(character))) {
+            throw new BusinessException("Password must contain a special character");
+        }
+    }
 
     private LoginVO buildLoginVO(User user) {
         return LoginVO.builder()

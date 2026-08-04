@@ -83,8 +83,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
     @Override
     @Cacheable(value = "publicConfigs")
     public Map<String, String> getPublicConfigs() {
-        List<SystemConfig> configs = systemConfigMapper.selectList(
-                new LambdaQueryWrapper<SystemConfig>().eq(SystemConfig::getIsPublic, 1));
+        List<SystemConfig> configs = systemConfigMapper.selectPublicConfigs();
         Map<String, String> result = new LinkedHashMap<>();
         for (SystemConfig config : configs) {
             result.put(config.getConfigKey(), config.getConfigValue());

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +46,7 @@ public class FileServiceImpl implements FileService {
     private final FileStorageProperties properties;
     private final com.knowledge.base.file.service.MediaService mediaService;
     private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
     @org.springframework.beans.factory.annotation.Value("${file.transcode.rabbit.enabled:false}")
     private boolean transcodeRabbitEnabled;
@@ -235,14 +237,41 @@ public class FileServiceImpl implements FileService {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("File must not be empty");
         }
-        if (file.getSize() > properties.getUpload().getMaxSize()) {
+        long maxSize = getMaxFileSizeFromConfig();
+        if (file.getSize() > maxSize) {
             throw new BusinessException("File size exceeds the limit");
         }
         String extension = extensionOf(file.getOriginalFilename());
-        if (extension.isEmpty() || (!properties.getUpload().getAllowedTypes().contains("*")
-                && !properties.getUpload().getAllowedTypes().contains(extension))) {
+        List<String> allowedTypes = getAllowedFileTypesFromConfig();
+        if (extension.isEmpty() || (!allowedTypes.contains("*") && !allowedTypes.contains(extension))) {
             throw new BusinessException("Unsupported file type: " + extension);
         }
+    }
+
+    private long getMaxFileSizeFromConfig() {
+        try {
+            String value = jdbcTemplate.queryForObject(
+                    "SELECT config_value FROM kb_foundation.kb_system_config WHERE config_key = 'file.upload.max.size' AND deleted = 0",
+                    String.class);
+            return StringUtils.hasText(value) ? Long.parseLong(value.trim()) : properties.getUpload().getMaxSize();
+        } catch (Exception exception) {
+            log.warn("Unable to read upload size setting: {}", exception.getMessage());
+            return properties.getUpload().getMaxSize();
+        }
+    }
+
+    private List<String> getAllowedFileTypesFromConfig() {
+        try {
+            String value = jdbcTemplate.queryForObject(
+                    "SELECT config_value FROM kb_foundation.kb_system_config WHERE config_key = 'file.upload.allowed.types' AND deleted = 0",
+                    String.class);
+            if (StringUtils.hasText(value)) {
+                return List.of(value.toLowerCase(Locale.ROOT).split(",")).stream().map(String::trim).filter(StringUtils::hasText).toList();
+            }
+        } catch (Exception exception) {
+            log.warn("Unable to read allowed upload types setting: {}", exception.getMessage());
+        }
+        return properties.getUpload().getAllowedTypes();
     }
 
     private FileInfo buildFileInfo(MultipartFile file, FileUploadDTO dto, String hash, String path, String storageType) {

@@ -16,4 +16,7 @@ public interface SystemConfigMapper extends BaseMapper<SystemConfig> {
 
     @Select("SELECT * FROM kb_system_config WHERE category = #{category} AND deleted = 0 ORDER BY id")
     List<SystemConfig> selectByCategory(@Param("category") String category);
+
+    @Select("SELECT * FROM kb_system_config WHERE is_public = 1 AND deleted = 0 ORDER BY category, config_key")
+    List<SystemConfig> selectPublicConfigs();
 }
