@@ -41,7 +41,8 @@ public class ReindexServiceImpl implements ReindexService {
             long pageNo = 1;
             int total = 0;
             while (true) {
-                Result<Map<String,Object>> page = documents.pageDocuments(pageNo, 100L, 1);
+                Result<Map<String,Object>> page = documents.pageDocuments(pageNo,
+                        (long) Math.max(1, properties.getReindex().getBatchSize()), 1);
                 if (page == null || page.getData() == null) break;
                 Object recordsValue = page.getData().get("records");
                 if (!(recordsValue instanceof List<?> records) || records.isEmpty()) break;
@@ -55,8 +56,19 @@ public class ReindexServiceImpl implements ReindexService {
             progress.put(taskId, ReindexProgressVO.builder().taskId(taskId).status("COMPLETED").total(total).completed(total).build());
         } catch (Exception e) { failed(taskId, e); }
     }
-    private String submit(List<Long> ids,boolean ignored){String task=task(ids==null?0:ids.size());CompletableFuture.runAsync(()->{try{if(ids!=null)for(Long id:ids)one(id,task);progress.computeIfPresent(task,(k,p)->ReindexProgressVO.builder().taskId(k).status("COMPLETED").total(p.getTotal()).completed(p.getTotal()).build());}catch(Exception e){failed(task,e);}});return task;}
-    private void one(Long id,String task){Result<Map<String,Object>> result=documents.getDocument(id);if(result==null||result.getData()==null)throw new IllegalArgumentException("Document not found: "+id);Map<String,Object>d=result.getData();String content=String.valueOf(d.getOrDefault("content",""));List<DocumentChunk> chunks=chunking.chunk(content,id,String.valueOf(d.getOrDefault("title","")),number(d.get("categoryId")),number(d.get("authorId")),null,integer(d.get("status")));chunks.forEach(c->c.setEmbedding(embeddings.embed(c.getContent())));index.deleteByDocId(id);index.indexChunks(chunks);progress.computeIfPresent(task,(k,p)->ReindexProgressVO.builder().taskId(k).status("RUNNING").total(p.getTotal()).completed(p.getCompleted()+1).build());}
+    private void one(Long id,String task){
+        int attempts = Math.max(1, properties.getReindex().getMaxRetries());
+        RuntimeException failure = null;
+        for (int attempt = 1; attempt <= attempts; attempt++) {
+            try {
+                Result<Map<String,Object>> result=documents.getDocument(id);if(result==null||result.getData()==null)throw new IllegalArgumentException("Document not found: "+id);Map<String,Object>d=result.getData();String content=String.valueOf(d.getOrDefault("content",""));List<DocumentChunk> chunks=chunking.chunk(content,id,String.valueOf(d.getOrDefault("title","")),number(d.get("categoryId")),number(d.get("authorId")),null,integer(d.get("status")));
+                List<float[]> vectors = embeddings.embedBatch(chunks.stream().map(DocumentChunk::getContent).toList());
+                for (int i = 0; i < chunks.size(); i++) chunks.get(i).setEmbedding(vectors.get(i));
+                index.deleteByDocId(id);index.indexChunks(chunks);progress.computeIfPresent(task,(k,p)->ReindexProgressVO.builder().taskId(k).status("RUNNING").total(p.getTotal()).completed(p.getCompleted()+1).build());return;
+            } catch (RuntimeException exception) { failure = exception; }
+        }
+        throw failure == null ? new IllegalStateException("Reindex failed") : failure;
+    }
     private String task(int total){String id=UUID.randomUUID().toString();progress.put(id,ReindexProgressVO.builder().taskId(id).status("RUNNING").total(total).completed(0).build());return id;}
     private String submitMessage(List<Long> ids, ReindexMessage.ReindexType type, String routingKey) {
         String taskId = task(type == ReindexMessage.ReindexType.ALL ? 0 : ids.size());

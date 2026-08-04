@@ -20,7 +20,14 @@ public class PublicShareController {
 
     @GetMapping("/{shareId}")
     public Result<ShareVO> getInfo(@PathVariable String shareId) {
-        return Result.success(documentShareService.getShareById(shareId));
+        ShareVO share = documentShareService.getShareById(shareId);
+        share.setDocumentId(null);
+        return Result.success(share);
+    }
+
+    @PostMapping("/{shareId}/verify")
+    public Result<Boolean> verify(@PathVariable String shareId, @RequestParam(required = false) String password) {
+        return Result.success(documentShareService.verifyShareAccess(shareId, password));
     }
 
     @PostMapping("/{shareId}/access")

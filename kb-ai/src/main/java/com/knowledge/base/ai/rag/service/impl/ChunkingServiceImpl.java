@@ -14,7 +14,7 @@ public class ChunkingServiceImpl implements ChunkingService {
     private static final Pattern HEADING = Pattern.compile("^(#{1,6})\\s+(.+)$", Pattern.MULTILINE);
     @Override public List<DocumentChunk> chunk(String content, Long documentId, String title, Long categoryId, Long authorId, Long teamId, Integer status) {
         if (content == null || content.isBlank()) return List.of();
-        int max = Math.max(100, properties.getChunking().getChunkSize() * 2), overlap = Math.max(0, properties.getChunking().getChunkOverlap() * 2);
+        int max = Math.max(100, properties.getChunking().getChunkSize()), overlap = Math.max(0, properties.getChunking().getChunkOverlap());
         List<Part> sections = sections(content); List<DocumentChunk> result = new ArrayList<>();
         for (Part section : sections) for (String piece : pieces(section.content(), max, overlap)) result.add(DocumentChunk.builder().chunkId(UUID.randomUUID().toString()).documentId(documentId).documentTitle(title).content((section.heading()==null?"":section.heading()+"\n\n")+piece).heading(section.heading()).chunkIndex(result.size()).categoryId(categoryId).authorId(authorId).teamId(teamId).docStatus(status).indexedAt(LocalDateTime.now()).build());
         result.forEach(c -> c.setTotalChunks(result.size())); return result;

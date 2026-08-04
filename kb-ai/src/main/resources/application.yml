@@ -69,12 +69,12 @@ rag:
     hybrid-top-k: ${RAG_HYBRID_TOP_K:20}
     rrf-c: ${RAG_RRF_C:60}
   rerank:
-    enabled: ${RAG_RERANK_ENABLED:false}
+    enabled: ${RAG_RERANK_ENABLED:true}
     model: ${RAG_RERANK_MODEL:qwen}
   index:
     name: ${RAG_INDEX_NAME:kb_chunk}
-    shards: ${RAG_INDEX_SHARDS:1}
-    replicas: ${RAG_INDEX_REPLICAS:0}
+    shards: ${RAG_INDEX_SHARDS:3}
+    replicas: ${RAG_INDEX_REPLICAS:1}
   reindex:
     batch-size: ${RAG_REINDEX_BATCH_SIZE:10}
     max-retries: ${RAG_REINDEX_MAX_RETRIES:3}

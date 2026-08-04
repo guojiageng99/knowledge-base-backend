@@ -65,6 +65,21 @@ public class DocumentShareServiceImpl implements DocumentShareService {
     }
 
     @Override
+    public boolean verifyShareAccess(String shareId, String password) {
+        try {
+            DocumentShare share = requireValidShare(shareId);
+            if (share.getAccessLimit() != null && share.getAccessLimit() > 0
+                    && share.getAccessCount() >= share.getAccessLimit()) {
+                return false;
+            }
+            return !Integer.valueOf(1).equals(share.getRequirePassword())
+                    || (password != null && DigestUtil.md5Hex(password).equals(share.getPassword()));
+        } catch (BusinessException exception) {
+            return false;
+        }
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public Long accessShare(String shareId, String password) {
         DocumentShare share = requireValidShare(shareId);

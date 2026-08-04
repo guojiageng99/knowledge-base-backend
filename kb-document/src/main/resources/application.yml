@@ -110,6 +110,10 @@ ai:
   service:
     url: ${AI_SERVICE_URL:http://localhost:8086/api/ai}
 
+pdf:
+  font:
+    path: ${PDF_FONT_PATH:}
+
 knife4j:
   enable: true
   setting:

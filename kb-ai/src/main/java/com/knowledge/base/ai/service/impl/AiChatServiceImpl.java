@@ -59,7 +59,7 @@ public class AiChatServiceImpl implements AiChatService {
     private ChatResponseVO saveResponse(Long id, String question, String answer) {
         Message user = Message.builder().conversationId(id).role("user").content(question).tokens(estimate(question)).build(); messageMapper.insert(user);
         Message ai = Message.builder().conversationId(id).role("assistant").content(answer).tokens(estimate(answer)).build(); messageMapper.insert(ai);
-        int tokens=user.getTokens()+ai.getTokens(); conversationService.updateTokens(id, tokens);
+        int tokens=user.getTokens()+ai.getTokens(); conversationService.updateTokens(id, tokens); conversationService.incrementMessageCount(id, 2);
         Conversation c=conversationService.getById(id);
         return ChatResponseVO.builder().conversationId(id).messageId(ai.getId()).content(answer).tokens(tokens).title(c==null?"新对话":c.getTitle()).build();
     }

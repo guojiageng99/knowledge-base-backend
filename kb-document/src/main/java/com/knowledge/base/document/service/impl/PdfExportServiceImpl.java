@@ -16,6 +16,7 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -35,6 +36,9 @@ public class PdfExportServiceImpl implements PdfExportService {
     private static final float LINE_HEIGHT = 17;
     private final DocumentService documentService;
     private final CategoryMapper categoryMapper;
+
+    @Value("${pdf.font.path:}")
+    private String configuredFontPath;
 
     @Override
     public String exportDocumentToPdf(Long documentId) {
@@ -119,7 +123,7 @@ public class PdfExportServiceImpl implements PdfExportService {
     }
 
     private PDFont loadFont(PDDocument pdf) throws IOException {
-        String[] paths = { "C:\\Windows\\Fonts\\simhei.ttf", "C:\\Windows\\Fonts\\simsun.ttc", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" };
+        String[] paths = { configuredFontPath, "C:\\Windows\\Fonts\\simhei.ttf", "C:\\Windows\\Fonts\\simsun.ttc", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" };
         for (String path : paths) {
             java.nio.file.Path fontPath = java.nio.file.Path.of(path);
             if (java.nio.file.Files.exists(fontPath)) return PDType0Font.load(pdf, fontPath.toFile());
@@ -127,6 +131,7 @@ public class PdfExportServiceImpl implements PdfExportService {
         try (InputStream stream = getClass().getResourceAsStream("/fonts/NotoSansCJK-Regular.ttc")) {
             if (stream != null) return PDType0Font.load(pdf, stream);
         }
+        log.warn("No CJK font was found. Configure pdf.font.path or add /fonts/NotoSansCJK-Regular.ttc for Chinese PDF output.");
         return PDType1Font.HELVETICA;
     }
 

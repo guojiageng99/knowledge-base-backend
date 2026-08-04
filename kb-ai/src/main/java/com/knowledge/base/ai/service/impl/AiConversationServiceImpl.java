@@ -45,7 +45,7 @@ public class AiConversationServiceImpl extends ServiceImpl<ConversationMapper, C
                 .eq(Conversation::getUserId, userId).orderByDesc(Conversation::getUpdateTime)).convert(this::toVO);
     }
     @Override @Transactional(rollbackFor=Exception.class) public boolean deleteConversation(Long id, Long userId) { return conversationMapper.deleteById(requireOwned(id, userId).getId()) > 0; }
-    @Override @Transactional(rollbackFor=Exception.class) public boolean updateTokens(Long id, Integer tokens) { Conversation c=require(id); c.setTokensUsed((c.getTokensUsed()==null?0:c.getTokensUsed())+(tokens==null?0:tokens)); c.setMessageCount((c.getMessageCount()==null?0:c.getMessageCount())+1); c.setUpdateTime(LocalDateTime.now()); return conversationMapper.updateById(c)>0; }
+    @Override @Transactional(rollbackFor=Exception.class) public boolean updateTokens(Long id, Integer tokens) { Conversation c=require(id); c.setTokensUsed((c.getTokensUsed()==null?0:c.getTokensUsed())+(tokens==null?0:tokens)); c.setUpdateTime(LocalDateTime.now()); return conversationMapper.updateById(c)>0; }
     @Override @Transactional(rollbackFor=Exception.class) public boolean updateTitle(Long id, String title) { Conversation c=require(id); c.setTitle(title); c.setUpdateTime(LocalDateTime.now()); return conversationMapper.updateById(c)>0; }
     @Override @Transactional(rollbackFor=Exception.class) public boolean incrementMessageCount(Long id, Integer count) { Conversation c=require(id); c.setMessageCount((c.getMessageCount()==null?0:c.getMessageCount())+(count==null?0:count)); return conversationMapper.updateById(c)>0; }
     @Override public Conversation getById(Long id) { return conversationMapper.selectById(id); }

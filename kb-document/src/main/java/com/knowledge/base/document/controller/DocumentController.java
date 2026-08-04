@@ -5,6 +5,8 @@ import com.knowledge.base.common.result.Result;
 import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.PdfExportService;
+import com.knowledge.base.document.service.UserFavoriteService;
+import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.DocumentVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +32,7 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final PdfExportService pdfExportService;
+    private final UserFavoriteService userFavoriteService;
 
     @PostMapping
     public Result<Long> createDocument(@Valid @RequestBody DocumentDTO documentDTO) {
@@ -91,9 +94,14 @@ public class DocumentController {
         return Result.success("Document liked successfully", documentService.likeDocument(documentId));
     }
 
+    /**
+     * Kept for clients created before the dedicated /favorite endpoints.
+     * It now writes the favorite record as well as the aggregate count.
+     */
     @PostMapping("/{documentId}/favorite")
     public Result<Boolean> favoriteDocument(@PathVariable Long documentId) {
-        return Result.success("Document favorited successfully", documentService.favoriteDocument(documentId));
+        return Result.success("Document favorited successfully",
+                userFavoriteService.addFavorite(UserContext.getCurrentUserId(), documentId));
     }
 
     @GetMapping("/{documentId}/export-pdf")

@@ -26,5 +26,8 @@ import java.util.concurrent.TimeUnit;
         catch (DataAccessException ignored) { }
         return vector;
     }
-    @Override public List<float[]> embedBatch(List<String> texts){ return texts.stream().map(this::embed).toList(); }
+    @Override public List<float[]> embedBatch(List<String> texts){
+        if (texts == null || texts.isEmpty()) return List.of();
+        return texts.stream().map(this::embed).toList();
+    }
 }
