@@ -20,6 +20,10 @@ public class DocumentDTO implements Serializable {
     private String summary;
     private String content;
     private Integer documentType;
+    private String filePath;
+    private Long fileSize;
+    private String fileExtension;
+    private String mimeType;
     private Long categoryId;
     @Size(max = 200, message = "Tags must not exceed 200 characters")
     private String tags;

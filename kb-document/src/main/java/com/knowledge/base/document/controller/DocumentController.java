@@ -79,6 +79,11 @@ public class DocumentController {
         return Result.success("File uploaded successfully", documentService.uploadDocumentFile(file));
     }
 
+    @PostMapping("/upload/parse")
+    public Result<Map<String, Object>> uploadAndParseDocument(@RequestParam("file") MultipartFile file) {
+        return Result.success("File parsed and draft created", documentService.uploadAndCreateDocument(file));
+    }
+
     @PostMapping("/{documentId}/content")
     public Result<Boolean> saveDocumentContent(@PathVariable Long documentId, @RequestBody String content) {
         return Result.success(documentService.updateDocumentContent(documentId, content));

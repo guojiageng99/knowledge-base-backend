@@ -8,6 +8,7 @@ import com.knowledge.base.document.vo.DocumentVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 public interface DocumentService extends IService<Document> {
 
@@ -18,6 +19,7 @@ public interface DocumentService extends IService<Document> {
     DocumentVO viewDocument(Long documentId);
     IPage<DocumentVO> pageDocuments(Long current, Long size, Long categoryId, String keyword, Integer status);
     String uploadDocumentFile(MultipartFile file);
+    Map<String, Object> uploadAndCreateDocument(MultipartFile file);
     Boolean likeDocument(Long documentId);
     Boolean unlikeDocument(Long documentId);
     Boolean favoriteDocument(Long documentId);

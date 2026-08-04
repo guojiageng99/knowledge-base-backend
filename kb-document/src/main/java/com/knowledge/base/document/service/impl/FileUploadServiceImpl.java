@@ -39,6 +39,23 @@ public class FileUploadServiceImpl implements FileUploadService {
         throw new BusinessException("Image upload returned no URL");
     }
 
+    @Override
+    public String uploadDocumentFile(org.springframework.web.multipart.MultipartFile file, Long uploaderId) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("File must not be empty");
+        }
+        com.knowledge.base.common.result.Result<FileUploadResponse> result =
+                fileServiceFeignClient.uploadFile(file, uploaderId, 0);
+        FileUploadResponse uploaded = result == null ? null : result.getData();
+        if (uploaded == null) {
+            throw new BusinessException("File service upload failed");
+        }
+        if (StringUtils.hasText(uploaded.getFileUrl())) return uploaded.getFileUrl();
+        if (StringUtils.hasText(uploaded.getPreviewUrl())) return uploaded.getPreviewUrl();
+        if (uploaded.getId() != null) return "/api/file/files/preview/" + uploaded.getId();
+        throw new BusinessException("File service returned no file URL");
+    }
+
     private record ResultHolder(FileUploadResponse data) {
         private ResultHolder(com.knowledge.base.common.result.Result<FileUploadResponse> result) {
             this(result == null ? null : result.getData());

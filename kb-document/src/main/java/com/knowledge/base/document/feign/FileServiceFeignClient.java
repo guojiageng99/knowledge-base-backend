@@ -16,7 +16,8 @@ public interface FileServiceFeignClient {
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
     Result<FileUploadResponse> uploadFile(@RequestPart("file") MultipartFile file,
-                                           @RequestParam(value = "bucketName", required = false) String bucketName);
+                                           @RequestParam(value = "uploaderId", required = false) Long uploaderId,
+                                           @RequestParam(value = "accessLevel", required = false) Integer accessLevel);
 
     @PostMapping("/upload-from-url")
     Result<FileUploadResponse> uploadFromUrl(@RequestParam("imageUrl") String imageUrl);

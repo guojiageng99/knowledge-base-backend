@@ -1,14 +1,23 @@
 package com.knowledge.base.document;
 
+import com.knowledge.base.common.config.JwtConfig;
+import com.knowledge.base.common.utils.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.event.EventListener;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
-@SpringBootApplication(scanBasePackages = "com.knowledge.base")
+@SpringBootApplication(scanBasePackages = {
+        "com.knowledge.base.document",
+        "com.knowledge.base.common.exception",
+        "com.knowledge.base.common.handler",
+        "com.knowledge.base.common.aspect"
+})
 @EnableFeignClients(basePackages = "com.knowledge.base.document.feign")
+@Import({JwtConfig.class, JwtTokenUtil.class})
 public class DocumentApplication {
 
     @Value("${server.port}")

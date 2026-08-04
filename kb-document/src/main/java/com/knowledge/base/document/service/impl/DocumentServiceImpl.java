@@ -22,6 +22,7 @@ import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.DocumentVersionService;
 import com.knowledge.base.document.service.DocumentContentService;
 import com.knowledge.base.document.service.DocumentAccessService;
+import com.knowledge.base.document.service.FileParserService;
 import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.AuthorVO;
 import com.knowledge.base.document.vo.DocumentVO;
@@ -41,6 +42,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +62,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final DocumentContentService documentContentService;
     private final DocumentAccessService documentAccessService;
     private final com.knowledge.base.document.service.FileUploadService fileUploadService;
+    private final FileParserService fileParserService;
     private final com.knowledge.base.document.feign.RagFeignClient ragFeignClient;
     private final com.knowledge.base.document.feign.KAGFeignClient kagFeignClient;
     private final com.knowledge.base.document.feign.SearchFeignClient searchFeignClient;
@@ -188,17 +192,50 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         String extension = FileUtil.extName(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
         if (!StrUtil.isNotBlank(extension)) throw new BusinessException("Unsupported file type");
         if (!allowedFileTypes.contains(extension)) throw new BusinessException("Unsupported file type");
-        String datePath = LocalDateTime.now().toLocalDate().toString();
-        File directory = new File(uploadPath, datePath).getAbsoluteFile();
-        if (!directory.exists() && !directory.mkdirs()) throw new BusinessException("Failed to create upload directory");
-        String fileName = IdUtil.simpleUUID() + "." + extension;
-        try {
-            file.transferTo(new File(directory, fileName));
-        } catch (IOException e) {
-            log.error("Failed to upload document file to {}", directory, e);
-            throw new BusinessException("File upload failed");
+        return fileUploadService.uploadDocumentFile(file, currentUserId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Map<String, Object> uploadAndCreateDocument(MultipartFile file) {
+        if (file == null || file.isEmpty()) throw new BusinessException("File must not be empty");
+        if (file.getSize() > maxFileSize) throw new BusinessException("File size exceeds the limit");
+        String extension = FileUtil.extName(file.getOriginalFilename()).toLowerCase(Locale.ROOT);
+        if (!fileParserService.isSupported(extension)) {
+            throw new BusinessException("Unsupported file type: " + extension + ". Supported: pdf, doc, docx, xls, xlsx, ppt, pptx, txt, md");
         }
-        return datePath + File.separator + fileName;
+        String content;
+        try {
+            content = fileParserService.parse(file);
+        } catch (Exception exception) {
+            log.warn("Failed to parse document import file {}", file.getOriginalFilename(), exception);
+            throw new BusinessException("File parsing failed: " + exception.getMessage());
+        }
+        if (!StringUtils.hasText(content)) throw new BusinessException("File parsing produced no text content");
+
+        String fileUrl = uploadDocumentFile(file);
+        String originalName = file.getOriginalFilename();
+        String title = StringUtils.hasText(originalName) && originalName.lastIndexOf('.') > 0
+                ? originalName.substring(0, originalName.lastIndexOf('.')) : "Imported document";
+        DocumentDTO dto = new DocumentDTO();
+        dto.setTitle(title.length() > 200 ? title.substring(0, 200) : title);
+        dto.setContent(content);
+        dto.setDocumentType(2);
+        dto.setFilePath(fileUrl);
+        dto.setFileSize(file.getSize());
+        dto.setFileExtension(extension);
+        dto.setMimeType(file.getContentType());
+        dto.setStatus(0);
+        Long documentId = createDocument(dto);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("documentId", documentId);
+        result.put("title", dto.getTitle());
+        result.put("fileUrl", fileUrl);
+        result.put("fileSize", file.getSize());
+        result.put("contentLength", content.length());
+        result.put("contentPreview", content.substring(0, Math.min(200, content.length())));
+        return result;
     }
 
     @Override
