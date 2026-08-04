@@ -19,6 +19,8 @@ public class ReviewQueryDTO {
     @Schema(description = "审核人ID")
     private Long reviewerId;
 
+    private Long authorId;
+
     @Schema(description = "关键词搜索")
     private String keyword;
 }

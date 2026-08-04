@@ -41,6 +41,8 @@ public class DocumentReview {
     @Schema(description = "审核轮次")
     private Integer reviewRound;
 
+    private Integer reviewLevel;
+
     @Schema(description = "创建时间")
     private LocalDateTime createdAt;
 }

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS tb_document_review (
     before_status TINYINT DEFAULT NULL COMMENT '审核前状态',
     reviewed_at DATETIME DEFAULT NULL COMMENT '审核时间',
     review_round INT NOT NULL DEFAULT 1 COMMENT '审核轮次',
+    review_level INT NOT NULL DEFAULT 1 COMMENT '审核级别',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (id),
     KEY idx_document_id (document_id),
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS tb_document_review (
 ALTER TABLE tb_document_review MODIFY COLUMN reviewer_id BIGINT NOT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN review_result TINYINT DEFAULT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN reviewed_at DATETIME DEFAULT NULL;
+ALTER TABLE tb_document_review ADD COLUMN IF NOT EXISTS review_level INT NOT NULL DEFAULT 1 COMMENT '审核级别';
 
 SET @reviewer_index_exists := (
     SELECT COUNT(*) FROM information_schema.statistics

@@ -13,12 +13,13 @@
         <result column="before_status" property="beforeStatus"/>
         <result column="reviewed_at" property="reviewedAt"/>
         <result column="review_round" property="reviewRound"/>
+        <result column="review_level" property="reviewLevel"/>
         <result column="created_at" property="createdAt"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id, document_id, reviewer_id, reviewer_name, review_result, review_comment, before_status,
-        reviewed_at, review_round, created_at
+        reviewed_at, review_round, review_level, created_at
     </sql>
 
     <select id="selectByDocumentId" resultMap="BaseResultMap">

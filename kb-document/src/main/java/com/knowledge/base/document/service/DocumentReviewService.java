@@ -8,6 +8,7 @@ import com.knowledge.base.document.entity.DocumentReview;
 import com.knowledge.base.document.vo.DocumentReviewVO;
 
 import java.util.List;
+import java.util.Map;
 
 public interface DocumentReviewService extends IService<DocumentReview> {
 
@@ -20,4 +21,7 @@ public interface DocumentReviewService extends IService<DocumentReview> {
     PageResult<DocumentReviewVO> getPendingReviews(ReviewQueryDTO dto);
 
     List<DocumentReviewVO> getDocumentReviewHistory(Long documentId);
+    Long getPendingCount();
+    Map<String, Long> getReviewStats();
+    void batchReview(List<Long> taskIds, String status, String comment);
 }
