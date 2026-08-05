@@ -1,6 +1,36 @@
 SET NAMES utf8mb4;
 USE `kb_document`;
 
+-- Keep existing installations compatible with the evaluation counters introduced in chapter 26.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS upgrade_kb_document_evaluation_counters$$
+CREATE PROCEDURE upgrade_kb_document_evaluation_counters()
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'kb_document' AND column_name = 'like_count'
+  ) THEN
+    ALTER TABLE `kb_document` ADD COLUMN `like_count` BIGINT NOT NULL DEFAULT 0 COMMENT 'like count';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'kb_document' AND column_name = 'favorite_count'
+  ) THEN
+    ALTER TABLE `kb_document` ADD COLUMN `favorite_count` BIGINT NOT NULL DEFAULT 0 COMMENT 'favorite count';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'kb_document' AND column_name = 'comment_count'
+  ) THEN
+    ALTER TABLE `kb_document` ADD COLUMN `comment_count` BIGINT NOT NULL DEFAULT 0 COMMENT 'comment count';
+  END IF;
+END$$
+CALL upgrade_kb_document_evaluation_counters()$$
+DROP PROCEDURE IF EXISTS upgrade_kb_document_evaluation_counters$$
+DELIMITER ;
+
 CREATE TABLE IF NOT EXISTS `kb_user_favorite` (
   `id` BIGINT NOT NULL,
   `user_id` BIGINT NOT NULL,
