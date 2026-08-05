@@ -13,6 +13,8 @@ import com.knowledge.base.file.dto.FileUploadDTO;
 import com.knowledge.base.file.entity.FileInfo;
 import com.knowledge.base.file.mapper.FileMapper;
 import com.knowledge.base.file.service.FileService;
+import com.knowledge.base.file.config.TranscodeRabbitConfig;
+import com.knowledge.base.common.config.InstanceIdentifier;
 import com.knowledge.base.file.storage.FileStorage;
 import com.knowledge.base.file.storage.FileStorageFactory;
 import com.knowledge.base.file.vo.FileInfoVO;
@@ -46,6 +48,7 @@ public class FileServiceImpl implements FileService {
     private final FileStorageProperties properties;
     private final com.knowledge.base.file.service.MediaService mediaService;
     private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final TranscodeRabbitConfig transcodeRabbitConfig;
     private final JdbcTemplate jdbcTemplate;
 
     @org.springframework.beans.factory.annotation.Value("${file.transcode.rabbit.enabled:false}")
@@ -337,7 +340,7 @@ public class FileServiceImpl implements FileService {
         if (!"hls".equalsIgnoreCase(targetFormat)) throw new BusinessException("Only HLS transcoding is supported");
         mediaService.updateTranscodeStatus(fileId, "PENDING");
         com.knowledge.base.file.message.TranscodeMessage message = new com.knowledge.base.file.message.TranscodeMessage(fileId, "hls");
-        if (transcodeRabbitEnabled) rabbitTemplate.convertAndSend(com.knowledge.base.file.config.TranscodeRabbitConfig.EXCHANGE, com.knowledge.base.file.config.TranscodeRabbitConfig.ROUTING_KEY, message);
+        if (transcodeRabbitEnabled) rabbitTemplate.convertAndSend(TranscodeRabbitConfig.EXCHANGE, transcodeRabbitConfig.routingKey(), message);
         else java.util.concurrent.CompletableFuture.runAsync(() -> transcode(message));
         return fileId.toString();
     }

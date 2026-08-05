@@ -5,10 +5,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.knowledge.base.common.exception.BusinessException;
+import com.knowledge.base.common.event.StatisticsEventDTO;
 import com.knowledge.base.common.result.PageResult;
 import com.knowledge.base.common.utils.SnowflakeIdGenerator;
 import com.knowledge.base.document.dto.CommentCreateDTO;
 import com.knowledge.base.document.dto.CommentQueryDTO;
+import com.knowledge.base.document.config.RabbitMQConfig;
 import com.knowledge.base.document.entity.Comment;
 import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.mapper.CommentMapper;
@@ -19,6 +21,7 @@ import com.knowledge.base.document.vo.CommentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +39,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
     private final CommentMapper commentMapper;
     private final DocumentMapper documentMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final RabbitTemplate rabbitTemplate;
+    private final RabbitMQConfig rabbitMQConfig;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -75,6 +80,14 @@ public class CommentServiceImpl extends ServiceImpl<CommentMapper, Comment> impl
         }
         if (documentMapper.incrementCommentCount(document.getId()) <= 0) {
             throw new BusinessException("更新文档评论数失败");
+        }
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.STATISTICS_EXCHANGE,
+                    rabbitMQConfig.statisticsRoutingKey("comment"),
+                    StatisticsEventDTO.builder().eventType("comment").documentId(document.getId())
+                            .userId(currentUserId()).timestamp(LocalDateTime.now()).build());
+        } catch (RuntimeException exception) {
+            log.warn("Failed to publish comment statistics event for document {}", document.getId(), exception);
         }
         return comment.getId();
     }

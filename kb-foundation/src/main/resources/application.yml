@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: kb-foundation
+
+app:
+  instance:
+    id: ${APP_INSTANCE_ID:}
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver

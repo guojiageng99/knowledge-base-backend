@@ -14,14 +14,15 @@ import java.util.concurrent.CompletableFuture;
 public class KAGBuildDispatcher {
     private final GraphBuildService graphBuildService;
     private final RabbitTemplate rabbitTemplate;
+    private final KAGRabbitConfig rabbitConfig;
 
     @Value("${kag.rabbit.enabled:false}")
     private boolean rabbitEnabled;
 
-    public void build(Long documentId) { dispatch(KAGBuildMessage.Type.BUILD_BY_DOC_IDS, List.of(documentId), KAGRabbitConfig.BUILD_KEY); }
-    public void buildBatch(List<Long> documentIds) { dispatch(KAGBuildMessage.Type.BUILD_BY_DOC_IDS, documentIds, KAGRabbitConfig.BUILD_KEY); }
-    public void buildAll() { dispatch(KAGBuildMessage.Type.BUILD_ALL, List.of(), KAGRabbitConfig.BUILD_KEY); }
-    public void delete(Long documentId) { dispatch(KAGBuildMessage.Type.DELETE_BY_DOC_IDS, List.of(documentId), KAGRabbitConfig.DELETE_KEY); }
+    public void build(Long documentId) { dispatch(KAGBuildMessage.Type.BUILD_BY_DOC_IDS, List.of(documentId), rabbitConfig.buildByIdsKey()); }
+    public void buildBatch(List<Long> documentIds) { dispatch(KAGBuildMessage.Type.BUILD_BY_DOC_IDS, documentIds, rabbitConfig.buildByIdsKey()); }
+    public void buildAll() { dispatch(KAGBuildMessage.Type.BUILD_ALL, List.of(), rabbitConfig.buildKey()); }
+    public void delete(Long documentId) { dispatch(KAGBuildMessage.Type.DELETE_BY_DOC_IDS, List.of(documentId), rabbitConfig.deleteKey()); }
 
     private void dispatch(KAGBuildMessage.Type type, List<Long> ids, String routingKey) {
         KAGBuildMessage message = KAGBuildMessage.builder().type(type).documentIds(ids).build();

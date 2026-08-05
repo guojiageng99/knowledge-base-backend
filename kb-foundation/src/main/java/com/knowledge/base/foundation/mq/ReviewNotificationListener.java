@@ -22,7 +22,7 @@ public class ReviewNotificationListener {
     private final SimpMessagingTemplate messagingTemplate;
     private final JdbcTemplate jdbcTemplate;
 
-    @RabbitListener(queues = "kb.notification.review.queue")
+    @RabbitListener(queues = "#{@reviewNotificationQueue.name}")
     public void handleReviewEvent(ReviewEventDTO event) {
         if (event == null || event.getEventType() == null) return;
         String link = "/review/documents/" + event.getDocumentId();

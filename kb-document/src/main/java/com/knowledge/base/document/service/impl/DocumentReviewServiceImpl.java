@@ -15,6 +15,7 @@ import com.knowledge.base.document.entity.DocumentReview;
 import com.knowledge.base.document.mapper.DocumentMapper;
 import com.knowledge.base.document.mapper.DocumentReviewMapper;
 import com.knowledge.base.document.service.DocumentReviewService;
+import com.knowledge.base.document.config.RabbitMQConfig;
 import com.knowledge.base.document.utils.UserContext;
 import com.knowledge.base.document.vo.DocumentReviewVO;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
     private final DocumentReviewMapper documentReviewMapper;
     private final DocumentMapper documentMapper;
     private final RabbitTemplate rabbitTemplate;
+    private final RabbitMQConfig rabbitMQConfig;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -272,7 +274,8 @@ public class DocumentReviewServiceImpl extends ServiceImpl<DocumentReviewMapper,
 
     private void publishEvent(ReviewEventDTO event, String routingKey) {
         try {
-            rabbitTemplate.convertAndSend(REVIEW_EXCHANGE, routingKey, event);
+            String eventType = routingKey.substring(routingKey.lastIndexOf('.') + 1);
+            rabbitTemplate.convertAndSend(REVIEW_EXCHANGE, rabbitMQConfig.reviewRoutingKey(eventType), event);
         } catch (Exception e) {
             log.warn("发布审核事件失败：documentId={}, eventType={}, error={}",
                     event.getDocumentId(), event.getEventType(), e.getMessage());

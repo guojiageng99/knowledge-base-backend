@@ -10,9 +10,11 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.knowledge.base.common.exception.BusinessException;
+import com.knowledge.base.common.event.StatisticsEventDTO;
 import com.knowledge.base.common.utils.SnowflakeIdGenerator;
 import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.dto.AutoSaveDTO;
+import com.knowledge.base.document.config.RabbitMQConfig;
 import com.knowledge.base.document.entity.Document;
 import com.knowledge.base.document.entity.DocumentTag;
 import com.knowledge.base.document.entity.Tag;
@@ -32,6 +34,7 @@ import com.knowledge.base.document.vo.DocumentVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,6 +74,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private final com.knowledge.base.document.feign.SearchFeignClient searchFeignClient;
     private final JdbcTemplate jdbcTemplate;
     private final AutoSaveHistoryService autoSaveHistoryService;
+    private final RabbitTemplate rabbitTemplate;
+    private final RabbitMQConfig rabbitMQConfig;
 
     @Value("${file.upload.path:./uploads}")
     private String uploadPath;
@@ -217,6 +222,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     public DocumentVO viewDocument(Long documentId) {
         Document document = requireDocument(documentId);
         documentMapper.incrementViewCount(documentId);
+        publishStatistics("view", documentId, UserContext.getCurrentUserId());
         document.setViewCount(document.getViewCount() + 1);
         Long userId = UserContext.getCurrentUserId();
         String documentTitle = document.getTitle();
@@ -311,6 +317,7 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         if (documentMapper.incrementLikeCount(documentId) <= 0) {
             throw new BusinessException("Failed to update document like count");
         }
+        publishStatistics("like", documentId, userId);
         return true;
     }
 
@@ -558,6 +565,17 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
     private Long currentUserId() {
         Long userId = UserContext.getCurrentUserId();
         return userId == null ? 1L : userId;
+    }
+
+    private void publishStatistics(String eventType, Long documentId, Long userId) {
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.STATISTICS_EXCHANGE,
+                    rabbitMQConfig.statisticsRoutingKey(eventType),
+                    StatisticsEventDTO.builder().eventType(eventType).documentId(documentId)
+                            .userId(userId).timestamp(LocalDateTime.now()).build());
+        } catch (RuntimeException exception) {
+            log.warn("Failed to publish {} statistics event for document {}", eventType, documentId, exception);
+        }
     }
 
     private AuthorVO buildAuthorVO(Document document) {

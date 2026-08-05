@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "file.transcode.rabbit.enabled", havingValue = "true")
 public class TranscodeConsumer {
     private final MediaService mediaService;
-    @RabbitListener(queues = TranscodeRabbitConfig.QUEUE)
+    @RabbitListener(queues = "#{@transcodeRabbitConfig.queueName()}")
     public void consume(TranscodeMessage message) {
         try {
             mediaService.updateTranscodeStatus(message.getFileId(), "PROCESSING");

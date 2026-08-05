@@ -6,6 +6,7 @@ import com.knowledge.base.ai.rag.entity.DocumentChunk;
 import com.knowledge.base.ai.rag.mq.RagRabbitConfig;
 import com.knowledge.base.ai.rag.mq.ReindexMessage;
 import com.knowledge.base.ai.rag.service.*;
+import com.knowledge.base.common.config.InstanceIdentifier;
 import com.knowledge.base.ai.rag.vo.ReindexProgressVO;
 import com.knowledge.base.common.result.Result;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +20,12 @@ public class ReindexServiceImpl implements ReindexService {
     private final DocumentFeignClient documents; private final ChunkingService chunking; private final EmbeddingService embeddings; private final VectorIndexService index;
     private final RabbitTemplate rabbitTemplate;
     private final RagProperties properties;
+    private final RagRabbitConfig rabbitConfig;
     private final Map<String, ReindexProgressVO> progress = new ConcurrentHashMap<>();
-    @Override public String reindexByDocId(Long id){return submitMessage(List.of(id), ReindexMessage.ReindexType.BY_DOC_IDS, RagRabbitConfig.ROUTING_KEY_BY_IDS);}
-    @Override public String reindexBatch(List<Long> ids){return submitMessage(ids, ReindexMessage.ReindexType.BY_DOC_IDS, RagRabbitConfig.ROUTING_KEY_BY_IDS);}
-    @Override public String reindexAll(){return submitMessage(List.of(), ReindexMessage.ReindexType.ALL, RagRabbitConfig.ROUTING_KEY_ALL);}
-    @Override public String deleteByDocId(Long id){return submitMessage(List.of(id), ReindexMessage.ReindexType.DELETE_BY_DOC_IDS, RagRabbitConfig.ROUTING_KEY_DELETE);}
+    @Override public String reindexByDocId(Long id){return submitMessage(List.of(id), ReindexMessage.ReindexType.BY_DOC_IDS, rabbitConfig.routingKeyByIds());}
+    @Override public String reindexBatch(List<Long> ids){return submitMessage(ids, ReindexMessage.ReindexType.BY_DOC_IDS, rabbitConfig.routingKeyByIds());}
+    @Override public String reindexAll(){return submitMessage(List.of(), ReindexMessage.ReindexType.ALL, rabbitConfig.routingKeyAll());}
+    @Override public String deleteByDocId(Long id){return submitMessage(List.of(id), ReindexMessage.ReindexType.DELETE_BY_DOC_IDS, rabbitConfig.routingKeyDelete());}
     @Override public ReindexProgressVO getProgress(String id){return progress.getOrDefault(id,ReindexProgressVO.builder().taskId(id).status("NOT_FOUND").build());}
     @Override public void process(ReindexMessage message) {
         String taskId = message.getTaskId();

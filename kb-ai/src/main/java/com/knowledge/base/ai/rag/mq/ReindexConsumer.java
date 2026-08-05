@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "rag.rabbit.enabled", havingValue = "true")
 public class ReindexConsumer {
     private final ReindexServiceImpl reindexService;
-    @RabbitListener(queues = RagRabbitConfig.QUEUE)
+    @RabbitListener(queues = "#{@ragRabbitConfig.queueName()}")
     public void consume(ReindexMessage message) {
         reindexService.process(message);
     }

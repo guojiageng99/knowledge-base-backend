@@ -6,6 +6,10 @@ server:
 spring:
   application:
     name: kb-file
+
+app:
+  instance:
+    id: ${APP_INSTANCE_ID:}
   config:
     import: ${NACOS_CONFIG_IMPORT:optional:nacos:kb-file-dev.yaml}
   cloud:

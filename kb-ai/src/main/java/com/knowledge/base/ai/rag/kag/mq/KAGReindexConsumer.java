@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class KAGReindexConsumer {
     private final KAGBuildDispatcher dispatcher;
 
-    @RabbitListener(queues = KAGRabbitConfig.QUEUE)
+    @RabbitListener(queues = "#{@kagRabbitConfig.queueName()}")
     public void onMessage(KAGBuildMessage message) {
         try {
             dispatcher.process(message);

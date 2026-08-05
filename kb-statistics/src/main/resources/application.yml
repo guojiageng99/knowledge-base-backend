@@ -5,6 +5,10 @@ server:
 spring:
   application:
     name: kb-statistics
+
+app:
+  instance:
+    id: ${APP_INSTANCE_ID:}
   datasource:
     url: jdbc:mysql://localhost:3306/kb_document?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root

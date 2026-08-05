@@ -9,15 +9,18 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import com.knowledge.base.common.config.InstanceIdentifier;
 
 @Configuration
 @ConditionalOnProperty(name = "file.transcode.rabbit.enabled", havingValue = "true")
 public class TranscodeRabbitConfig {
     public static final String EXCHANGE = "transcode.exchange";
-    public static final String QUEUE = "transcode.queue";
-    public static final String ROUTING_KEY = "transcode";
+    private final InstanceIdentifier instanceIdentifier;
+    public TranscodeRabbitConfig(InstanceIdentifier instanceIdentifier) { this.instanceIdentifier = instanceIdentifier; }
+    public String queueName() { return "transcode.queue." + instanceIdentifier.getId(); }
+    public String routingKey() { return "transcode." + instanceIdentifier.getId(); }
     @Bean public DirectExchange transcodeExchange() { return new DirectExchange(EXCHANGE, true, false); }
-    @Bean public Queue transcodeQueue() { return QueueBuilder.durable(QUEUE).build(); }
-    @Bean public Binding transcodeBinding() { return BindingBuilder.bind(transcodeQueue()).to(transcodeExchange()).with(ROUTING_KEY); }
+    @Bean public Queue transcodeQueue() { return QueueBuilder.durable(queueName()).build(); }
+    @Bean public Binding transcodeBinding() { return BindingBuilder.bind(transcodeQueue()).to(transcodeExchange()).with(routingKey()); }
     @Bean public Jackson2JsonMessageConverter transcodeMessageConverter() { return new Jackson2JsonMessageConverter(); }
 }
