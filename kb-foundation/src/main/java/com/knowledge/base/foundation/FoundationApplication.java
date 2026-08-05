@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.knowledge.base.common.config.JwtConfig;
+import com.knowledge.base.common.config.InstanceIdentifier;
 import com.knowledge.base.common.utils.JwtTokenUtil;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.annotation.EnableCaching;
@@ -21,7 +22,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         "com.knowledge.base.common.handler",
         "com.knowledge.base.common.aspect"
 })
-@Import({JwtConfig.class, JwtTokenUtil.class})
+@Import({JwtConfig.class, JwtTokenUtil.class, InstanceIdentifier.class})
 public class FoundationApplication {
 
     @Value("${server.port}")

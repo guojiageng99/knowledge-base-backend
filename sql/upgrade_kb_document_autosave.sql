@@ -1,4 +1,6 @@
 -- Chapter 39: idempotent automatic-save metadata migration for kb_document.
+USE kb_document;
+
 DELIMITER $$
 DROP PROCEDURE IF EXISTS upgrade_kb_document_autosave$$
 CREATE PROCEDURE upgrade_kb_document_autosave()

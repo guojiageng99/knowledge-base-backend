@@ -21,7 +21,13 @@ CREATE TABLE IF NOT EXISTS tb_document_review (
 ALTER TABLE tb_document_review MODIFY COLUMN reviewer_id BIGINT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN review_result TINYINT DEFAULT NULL;
 ALTER TABLE tb_document_review MODIFY COLUMN reviewed_at DATETIME DEFAULT NULL;
-ALTER TABLE tb_document_review ADD COLUMN IF NOT EXISTS review_level INT NOT NULL DEFAULT 1 COMMENT '审核级别';
+SET @review_level_sql := IF(
+    (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tb_document_review' AND column_name = 'review_level') = 0,
+    'ALTER TABLE tb_document_review ADD COLUMN review_level INT NOT NULL DEFAULT 1 COMMENT ''review level''',
+    'SELECT 1');
+PREPARE review_level_stmt FROM @review_level_sql;
+EXECUTE review_level_stmt;
+DEALLOCATE PREPARE review_level_stmt;
 
 SET @reviewer_index_exists := (
     SELECT COUNT(*) FROM information_schema.statistics

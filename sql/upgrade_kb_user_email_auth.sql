@@ -1,5 +1,7 @@
 -- Chapter 38: make existing kb_user schemas compatible with email activation.
 -- This script is idempotent for MySQL 8.0 installations.
+USE kb_user;
+
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS upgrade_kb_user_email_auth$$

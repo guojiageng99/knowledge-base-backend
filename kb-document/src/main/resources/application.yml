@@ -6,6 +6,32 @@ server:
 spring:
   application:
     name: kb-document
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/kb_document?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/knowledge_base?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000}
+      auto-index-creation: true
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 20MB
 
 app:
   instance:
@@ -13,9 +39,9 @@ app:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/kb_document?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/kb_document?useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:123456}
     druid:
       initial-size: 20
       min-idle: 10
@@ -46,8 +72,8 @@ app:
       uri: ${MONGODB_URI:mongodb://localhost:27017/knowledge_base?serverSelectionTimeoutMS=2000&connectTimeoutMS=2000}
       auto-index-creation: true
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
       password:
       database: 1
       timeout: 10s
@@ -57,6 +83,11 @@ app:
           max-wait: -1ms
           max-idle: 8
           min-idle: 0
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   servlet:
     multipart:
       enabled: true
@@ -69,7 +100,7 @@ app:
     time-zone: GMT+8
     default-property-inclusion: non_null
   elasticsearch:
-    uris: http://localhost:9200
+    uris: ${ELASTICSEARCH_URIS:http://localhost:9200}
     connection-timeout: 10s
     socket-timeout: 30s
 

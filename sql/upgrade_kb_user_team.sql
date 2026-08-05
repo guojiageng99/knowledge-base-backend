@@ -1,3 +1,5 @@
+USE kb_user;
+
 CREATE TABLE IF NOT EXISTS kb_team (
   id BIGINT NOT NULL COMMENT 'team ID',
   team_name VARCHAR(100) NOT NULL COMMENT 'team name',

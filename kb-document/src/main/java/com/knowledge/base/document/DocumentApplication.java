@@ -1,6 +1,7 @@
 package com.knowledge.base.document;
 
 import com.knowledge.base.common.config.JwtConfig;
+import com.knowledge.base.common.config.InstanceIdentifier;
 import com.knowledge.base.common.utils.JwtTokenUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -17,7 +18,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
         "com.knowledge.base.common.aspect"
 })
 @EnableFeignClients(basePackages = "com.knowledge.base.document.feign")
-@Import({JwtConfig.class, JwtTokenUtil.class})
+@Import({JwtConfig.class, JwtTokenUtil.class, InstanceIdentifier.class})
 public class DocumentApplication {
 
     @Value("${server.port}")

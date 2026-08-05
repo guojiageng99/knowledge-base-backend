@@ -1,0 +1,6 @@
+.env
+backend/
+knowledge-base-docker.tar.gz
+frontend-dist/
+mysql/init/*.sql
+!mysql/init/00-create-databases.sql

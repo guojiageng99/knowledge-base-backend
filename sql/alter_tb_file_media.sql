@@ -1,3 +1,5 @@
+USE kb_file;
+
 ALTER TABLE tb_file
     ADD COLUMN duration INT NULL COMMENT 'Media duration in seconds',
     ADD COLUMN resolution VARCHAR(20) NULL COMMENT 'Media resolution',
