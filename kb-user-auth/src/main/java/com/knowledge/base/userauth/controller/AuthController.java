@@ -6,6 +6,7 @@ import com.knowledge.base.userauth.dto.RegisterDTO;
 import com.knowledge.base.userauth.dto.ResetPasswordDTO;
 import com.knowledge.base.userauth.dto.SendResetCodeDTO;
 import com.knowledge.base.userauth.dto.VerifyResetCodeDTO;
+import com.knowledge.base.userauth.dto.AcceptInviteDTO;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.LoginVO;
 import com.knowledge.base.userauth.vo.RegisterVO;
@@ -46,6 +47,12 @@ public class AuthController {
     @Operation(summary = "Verify email and activate account")
     public Result<String> verifyEmail(@RequestParam String token) {
         return Result.success(userService.verifyEmail(token));
+    }
+
+    @PostMapping("/accept-invite")
+    @Operation(summary = "Accept administrator invitation")
+    public Result<String> acceptInvite(@Valid @RequestBody AcceptInviteDTO dto) {
+        return Result.success(userService.acceptInvite(dto));
     }
 
     @PostMapping("/password/reset/send-code")

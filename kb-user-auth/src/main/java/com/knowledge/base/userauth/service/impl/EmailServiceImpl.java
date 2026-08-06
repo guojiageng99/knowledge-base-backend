@@ -28,6 +28,15 @@ public class EmailServiceImpl implements EmailService {
     }
 
     @Override
+    public void sendInvitationEmail(String recipient, String username, String token) {
+        String url = frontendUrl + "/activate?token=" + token;
+        sendHtml(recipient, "Knowledge Base team invitation", "<p>Hello, " + escape(username)
+                + ".</p><p>You have been invited to join the enterprise knowledge base.</p>"
+                + "<p><a href=\"" + url + "\">Accept invitation and set your password</a></p>"
+                + "<p>This invitation expires in 24 hours and can only be used once.</p>");
+    }
+
+    @Override
     public void sendResetCodeEmail(String recipient, String code) {
         sendHtml(recipient, "Knowledge Base password reset code", "<p>Your password reset code is:</p><h2>"
                 + code + "</h2><p>The code expires in 10 minutes.</p>");

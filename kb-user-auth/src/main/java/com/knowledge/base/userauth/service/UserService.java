@@ -8,6 +8,8 @@ import com.knowledge.base.userauth.vo.UserStatisticsVO;
 import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.dto.RegisterDTO;
+import com.knowledge.base.userauth.dto.InviteUserDTO;
+import com.knowledge.base.userauth.dto.AcceptInviteDTO;
 import com.knowledge.base.userauth.vo.RegisterVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
@@ -27,6 +29,8 @@ public interface UserService extends IService<User> {
     Boolean changePassword(String oldPassword, String newPassword);
 
     RegisterVO register(RegisterDTO registerDTO);
+    RegisterVO inviteUser(InviteUserDTO inviteUserDTO);
+    String acceptInvite(AcceptInviteDTO acceptInviteDTO);
 
     String verifyEmail(String token);
 

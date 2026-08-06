@@ -13,6 +13,8 @@ import com.knowledge.base.userauth.entity.User;
 import com.knowledge.base.userauth.entity.Team;
 import com.knowledge.base.userauth.entity.TeamMember;
 import com.knowledge.base.userauth.dto.RegisterDTO;
+import com.knowledge.base.userauth.dto.InviteUserDTO;
+import com.knowledge.base.userauth.dto.AcceptInviteDTO;
 import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.dto.UserProfileDTO;
 import com.knowledge.base.userauth.mapper.UserMapper;
@@ -38,6 +40,7 @@ import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.security.SecureRandom;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -215,6 +218,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public RegisterVO inviteUser(InviteUserDTO dto) {
+        requireAdministrator();
+        String username = dto.getUsername().trim();
+        String email = normalizeEmail(dto.getEmail());
+        if (baseMapper.selectByUsername(username) != null) throw new BusinessException("Username already exists");
+        if (baseMapper.selectByEmail(email) != null) throw new BusinessException("Email already registered");
+        Team team = teamMapper.selectById(dto.getTeamId());
+        if (team == null || !Integer.valueOf(1).equals(team.getStatus())) throw new BusinessException("Selected team does not exist or is disabled");
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        user.setEmail(email);
+        user.setPhone(hasText(dto.getPhone()) ? dto.getPhone().trim() : null);
+        user.setRealName(dto.getRealName().trim());
+        user.setStatus(0);
+        user.setEmailVerified(0);
+        user.setActivationToken(verificationTokenUtil.generateToken());
+        user.setActivationTokenExpiry(verificationTokenUtil.calculateExpiryTime());
+        user.setCreateBy(UserContextUtil.getUserId());
+        if (!save(user)) throw new BusinessException("Failed to create invited user");
+
+        TeamMember member = new TeamMember();
+        member.setTeamId(team.getId()); member.setUserId(user.getId()); member.setMemberRole("member");
+        member.setJoinTime(LocalDateTime.now()); member.setCreateBy(UserContextUtil.getUserId());
+        if (teamMemberMapper.insert(member) != 1) throw new BusinessException("Failed to join selected team");
+        teamMapper.incrementMemberCount(team.getId());
+        emailService.sendInvitationEmail(user.getEmail(), user.getUsername(), user.getActivationToken());
+        return RegisterVO.builder().userId(user.getId()).emailVerificationRequired(true)
+                .message("Invitation sent. The user must accept it and set a password before signing in.").build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String acceptInvite(AcceptInviteDTO dto) {
+        if (!dto.getPassword().equals(dto.getConfirmPassword())) throw new BusinessException("Passwords do not match");
+        securityConfigService.validatePassword(dto.getPassword());
+        User user = baseMapper.selectByActivationToken(dto.getToken().trim());
+        if (user == null) throw new BusinessException("Invalid invitation link");
+        if (Integer.valueOf(1).equals(user.getEmailVerified())) throw new BusinessException("Invitation has already been used");
+        if (verificationTokenUtil.isTokenExpired(user.getActivationTokenExpiry())) throw new BusinessException("Invitation has expired");
+        user.setPassword(passwordEncoder.encode(dto.getPassword())); user.setEmailVerified(1); user.setStatus(1);
+        user.setActivationToken(null); user.setActivationTokenExpiry(null);
+        if (!updateById(user)) throw new BusinessException("Failed to activate invited account");
+        return "Invitation accepted. You can now sign in";
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public String verifyEmail(String token) {
         if (!hasText(token)) throw new BusinessException("Invalid activation link");
         User user = baseMapper.selectByActivationToken(token.trim());
@@ -361,6 +413,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private String resetCodeKey(String email) { return RESET_CODE_KEY_PREFIX + email; }
 
     private boolean hasText(String value) { return value != null && !value.trim().isEmpty(); }
+
+    private void requireAdministrator() {
+        Long userId = UserContextUtil.getUserId();
+        if (userId == null || roleMapper.selectRoleCodesByUserId(userId).stream()
+                .noneMatch(role -> "admin".equalsIgnoreCase(role)
+                        || "role_admin".equalsIgnoreCase(role)
+                        || "role_super_admin".equalsIgnoreCase(role))) {
+            throw new BusinessException("Administrator permission is required");
+        }
+    }
 
     private LoginVO buildLoginVO(User user) {
         return LoginVO.builder()

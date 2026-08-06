@@ -29,7 +29,7 @@ public class SecurityConfigServiceImpl implements SecurityConfigService {
     @Override
     public boolean isRegistrationEnabled() {
         String value = getConfig("user.registration.enabled");
-        return value == null || Boolean.parseBoolean(value);
+        return value != null && Boolean.parseBoolean(value);
     }
 
     @Override

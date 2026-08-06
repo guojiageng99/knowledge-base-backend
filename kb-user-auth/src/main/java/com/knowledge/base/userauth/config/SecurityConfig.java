@@ -44,7 +44,7 @@ public class SecurityConfig {
                     response.getWriter().write(objectMapper.writeValueAsString(Result.error(403, "未认证或Token已过期")));
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/refresh", "/auth/register", "/auth/verify-email", "/auth/password/reset/**", "/auth/test", "/public/**", "/ws/**", "/actuator/**").permitAll()
+                        .requestMatchers("/auth/login", "/auth/refresh", "/auth/verify-email", "/auth/accept-invite", "/auth/password/reset/**", "/auth/test", "/public/**", "/ws/**", "/actuator/**").permitAll()
                         .requestMatchers("/doc.html", "/swagger-resources/**", "/v3/api-docs/**", "/webjars/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())

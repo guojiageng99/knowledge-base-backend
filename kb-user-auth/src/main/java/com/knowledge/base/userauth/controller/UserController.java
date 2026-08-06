@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.knowledge.base.common.result.Result;
 import com.knowledge.base.userauth.dto.UserDTO;
 import com.knowledge.base.userauth.dto.UserProfileDTO;
+import com.knowledge.base.userauth.dto.InviteUserDTO;
+import com.knowledge.base.userauth.vo.RegisterVO;
 import com.knowledge.base.userauth.service.UserService;
 import com.knowledge.base.userauth.vo.UserVO;
 import com.knowledge.base.userauth.vo.UserStatisticsVO;
@@ -19,6 +21,11 @@ public class UserController {
 
     @PostMapping
     public Result<Long> createUser(@Valid @RequestBody UserDTO dto) { return Result.success("User created successfully", userService.createUser(dto)); }
+
+    @PostMapping("/invite")
+    public Result<RegisterVO> inviteUser(@Valid @RequestBody InviteUserDTO dto) {
+        return Result.success("Invitation sent", userService.inviteUser(dto));
+    }
 
     @PutMapping
     public Result<Boolean> updateUser(@Valid @RequestBody UserDTO dto) { return Result.success("User updated successfully", userService.updateUser(dto)); }
