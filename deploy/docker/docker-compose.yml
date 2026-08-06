@@ -158,6 +158,14 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
       APP_INSTANCE_ID: ${APP_INSTANCE_ID:-knowledge-base}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-true}
+      MAIL_SMTP_SSL_ENABLE: ${MAIL_SMTP_SSL_ENABLE:-false}
       SPRING_CLOUD_NACOS_CONFIG_ENABLED: "false"
       SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "false"
     depends_on:
@@ -238,6 +246,10 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
     depends_on:
       gateway: {condition: service_started}
 
