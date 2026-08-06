@@ -9,26 +9,15 @@ import java.time.Duration;
 
 @Configuration
 public class LangChain4jConfig {
-    @Value("${qwen.api-key}") private String qwenApiKey;
-    @Value("${qwen.base-url}") private String qwenBaseUrl;
-    @Value("${qwen.chat.options.model}") private String qwenModel;
-    @Value("${qwen.chat.options.temperature}") private double qwenTemperature;
-    @Value("${qwen.chat.options.max-tokens}") private int qwenMaxTokens;
-    @Value("${deepseek.api-key}") private String deepseekApiKey;
-    @Value("${deepseek.base-url}") private String deepseekBaseUrl;
-    @Value("${deepseek.model}") private String deepseekModel;
-    @Value("${deepseek.max-tokens}") private int deepseekMaxTokens;
-    @Value("${deepseek.temperature}") private double deepseekTemperature;
+    @Value("${openai.api-key}") private String openAiApiKey;
+    @Value("${openai.base-url}") private String openAiBaseUrl;
+    @Value("${openai.chat.options.model}") private String openAiModel;
+    @Value("${openai.chat.options.temperature}") private double openAiTemperature;
+    @Value("${openai.chat.options.max-tokens}") private int openAiMaxTokens;
 
-    @Bean("qwenChatModel")
-    public ChatLanguageModel qwenChatModel() {
-        return OpenAiChatModel.builder().apiKey(qwenApiKey).baseUrl(qwenBaseUrl).modelName(qwenModel)
-                .temperature(qwenTemperature).maxTokens(qwenMaxTokens).timeout(Duration.ofSeconds(120)).build();
-    }
-
-    @Bean("deepseekChatModel")
-    public ChatLanguageModel deepseekChatModel() {
-        return OpenAiChatModel.builder().apiKey(deepseekApiKey).baseUrl(deepseekBaseUrl).modelName(deepseekModel)
-                .temperature(deepseekTemperature).maxTokens(deepseekMaxTokens).timeout(Duration.ofSeconds(120)).build();
+    @Bean("openAiChatModel")
+    public ChatLanguageModel openAiChatModel() {
+        return OpenAiChatModel.builder().apiKey(openAiApiKey).baseUrl(openAiBaseUrl).modelName(openAiModel)
+                .temperature(openAiTemperature).maxTokens(openAiMaxTokens).timeout(Duration.ofSeconds(120)).build();
     }
 }

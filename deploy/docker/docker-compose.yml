@@ -273,8 +273,12 @@ services:
       RABBITMQ_HOST: rabbitmq
       DOCUMENT_SERVICE_URL: http://document:8082/api/document
       GRAPH_SERVICE_URL: http://graph:8088/api/graph
-      QWEN_API_KEY: ${QWEN_API_KEY:-}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4}
+      OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE:-0.3}
+      OPENAI_MAX_TOKENS: ${OPENAI_MAX_TOKENS:-4000}
+      RAG_ENABLED: ${RAG_ENABLED:-false}
     depends_on:
       mysql: {condition: service_healthy}
       redis: {condition: service_healthy}

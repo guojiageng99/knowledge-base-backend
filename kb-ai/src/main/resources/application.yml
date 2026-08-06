@@ -61,30 +61,27 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
-qwen:
-  api-key: ${QWEN_API_KEY:your-qwen-api-key}
-  base-url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+openai:
+  api-key: ${OPENAI_API_KEY:}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
   chat:
     options:
-      model: ${QWEN_MODEL:qwen3-max}
-      temperature: ${QWEN_TEMPERATURE:0.3}
-      max-tokens: ${QWEN_MAX_TOKENS:4000}
-deepseek:
-  api-key: ${DEEPSEEK_API_KEY:your-deepseek-api-key}
-  base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
-  model: ${DEEPSEEK_MODEL:deepseek-chat}
-  max-tokens: ${DEEPSEEK_MAX_TOKENS:4096}
-  temperature: ${DEEPSEEK_TEMPERATURE:0.7}
+      model: ${OPENAI_MODEL:gpt-5.4}
+      temperature: ${OPENAI_TEMPERATURE:0.3}
+      max-tokens: ${OPENAI_MAX_TOKENS:4000}
+  embedding:
+    api-key: ${OPENAI_EMBEDDING_API_KEY:${OPENAI_API_KEY:}}
+    base-url: ${OPENAI_EMBEDDING_BASE_URL:${OPENAI_BASE_URL:https://api.openai.com/v1}}
 ai:
-  default-model: ${AI_DEFAULT_MODEL:qwen}
+  default-model: ${AI_DEFAULT_MODEL:openai}
 rag:
   enabled: ${RAG_ENABLED:true}
   chunking:
     chunk-size: ${RAG_CHUNK_SIZE:512}
     chunk-overlap: ${RAG_CHUNK_OVERLAP:64}
   embedding:
-    model: ${RAG_EMBEDDING_MODEL:text-embedding-v3}
-    dimension: ${RAG_EMBEDDING_DIMENSION:1024}
+    model: ${RAG_EMBEDDING_MODEL:text-embedding-3-small}
+    dimension: ${RAG_EMBEDDING_DIMENSION:1536}
     cache-ttl-seconds: ${RAG_EMBEDDING_CACHE_TTL:86400}
   retrieval:
     default-top-k: ${RAG_RETRIEVAL_TOP_K:5}
@@ -92,7 +89,7 @@ rag:
     rrf-c: ${RAG_RRF_C:60}
   rerank:
     enabled: ${RAG_RERANK_ENABLED:true}
-    model: ${RAG_RERANK_MODEL:qwen}
+    model: ${RAG_RERANK_MODEL:openai}
   index:
     name: ${RAG_INDEX_NAME:kb_chunk}
     shards: ${RAG_INDEX_SHARDS:3}

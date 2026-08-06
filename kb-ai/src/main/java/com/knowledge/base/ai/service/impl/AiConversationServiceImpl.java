@@ -25,10 +25,10 @@ public class AiConversationServiceImpl extends ServiceImpl<ConversationMapper, C
         return createConversation(title.length() > 30 ? title.substring(0, 30) : title, userId, dto.getModel(), dto.getSystemPrompt());
     }
     @Override @Transactional(rollbackFor=Exception.class)
-    public Long createConversation(String title, Long userId) { return createConversation(title, userId, "qwen", null); }
+    public Long createConversation(String title, Long userId) { return createConversation(title, userId, "openai", null); }
     private Long createConversation(String title, Long userId, String model, String prompt) {
         Conversation c = Conversation.builder().title(title == null || title.isBlank() ? "新对话" : title)
-                .userId(userId).model(model == null ? "qwen" : model).systemPrompt(prompt).tokensUsed(0).messageCount(0)
+                .userId(userId).model(model == null ? "openai" : model).systemPrompt(prompt).tokensUsed(0).messageCount(0)
                 .status(0).createTime(LocalDateTime.now()).updateTime(LocalDateTime.now()).deleted(0).build();
         if (conversationMapper.insert(c) <= 0) throw new IllegalStateException("创建对话失败");
         return c.getId();

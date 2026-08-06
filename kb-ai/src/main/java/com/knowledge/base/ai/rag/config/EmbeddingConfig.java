@@ -11,8 +11,8 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "rag.enabled", havingValue = "true", matchIfMissing = true)
 public class EmbeddingConfig {
     @Bean
-    public EmbeddingModel embeddingModel(@Value("${qwen.api-key}") String apiKey,
-                                         @Value("${qwen.base-url}") String baseUrl,
+    public EmbeddingModel embeddingModel(@Value("${openai.embedding.api-key:${openai.api-key}}") String apiKey,
+                                         @Value("${openai.embedding.base-url:${openai.base-url}}") String baseUrl,
                                          RagProperties properties) {
         return OpenAiEmbeddingModel.builder().apiKey(apiKey).baseUrl(baseUrl)
                 .modelName(properties.getEmbedding().getModel()).build();

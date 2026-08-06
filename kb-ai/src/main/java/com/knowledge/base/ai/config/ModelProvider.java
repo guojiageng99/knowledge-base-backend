@@ -15,22 +15,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ModelProvider {
     private final Map<String, ChatLanguageModel> models = new ConcurrentHashMap<>();
     private final Map<String, StreamingChatLanguageModel> streamingModels = new ConcurrentHashMap<>();
-    @Value("${qwen.api-key:}") private String qwenApiKey;
-    @Value("${qwen.base-url:}") private String qwenBaseUrl;
-    @Value("${qwen.chat.options.model:qwen-plus}") private String qwenModel;
-    @Value("${qwen.chat.options.temperature:0.7}") private double qwenTemperature;
-    @Value("${qwen.chat.options.max-tokens:2048}") private int qwenMaxTokens;
-    @Value("${deepseek.api-key:}") private String deepseekApiKey;
-    @Value("${deepseek.base-url:}") private String deepseekBaseUrl;
-    @Value("${deepseek.model:deepseek-chat}") private String deepseekModel;
-    @Value("${deepseek.temperature:0.7}") private double deepseekTemperature;
-    @Value("${deepseek.max-tokens:2048}") private int deepseekMaxTokens;
-    @Value("${ai.default-model:qwen}") private String defaultModelName;
+    @Value("${openai.api-key:}") private String openAiApiKey;
+    @Value("${openai.base-url:}") private String openAiBaseUrl;
+    @Value("${openai.chat.options.model:gpt-5.4}") private String openAiModel;
+    @Value("${openai.chat.options.temperature:0.7}") private double openAiTemperature;
+    @Value("${openai.chat.options.max-tokens:2048}") private int openAiMaxTokens;
+    @Value("${ai.default-model:openai}") private String defaultModelName;
 
-    public ModelProvider(@Qualifier("qwenChatModel") ChatLanguageModel qwen,
-                         @Qualifier("deepseekChatModel") ChatLanguageModel deepseek) {
-        models.put("qwen", qwen);
-        models.put("deepseek", deepseek);
+    public ModelProvider(@Qualifier("openAiChatModel") ChatLanguageModel openAi) {
+        models.put("openai", openAi);
     }
     public ChatLanguageModel getModel(String name) { return models.getOrDefault(name, getDefaultModel()); }
     public StreamingChatLanguageModel getStreamingModel(String name) {
@@ -41,14 +34,12 @@ public class ModelProvider {
     public String getDefaultModelName() { return defaultModelName; }
     private StreamingChatLanguageModel buildStreamingModel(String name) {
         return switch (name) {
-            case "deepseek" -> OpenAiStreamingChatModel.builder().apiKey(deepseekApiKey).baseUrl(deepseekBaseUrl).modelName(deepseekModel).temperature(deepseekTemperature).maxTokens(deepseekMaxTokens).build();
-            case "qwen" -> OpenAiStreamingChatModel.builder().apiKey(qwenApiKey).baseUrl(qwenBaseUrl).modelName(qwenModel).temperature(qwenTemperature).maxTokens(qwenMaxTokens).build();
+            case "openai" -> OpenAiStreamingChatModel.builder().apiKey(openAiApiKey).baseUrl(openAiBaseUrl).modelName(openAiModel).temperature(openAiTemperature).maxTokens(openAiMaxTokens).build();
             default -> throw new IllegalArgumentException("Unsupported AI model: " + name);
         };
     }
     public List<ModelVO> getAvailableModels() {
-        return List.of(
-                ModelVO.builder().key("qwen").displayName("通义千问").description("阿里云大语言模型").isDefault("qwen".equals(defaultModelName)).build(),
-                ModelVO.builder().key("deepseek").displayName("DeepSeek").description("擅长代码生成和深度推理").isDefault("deepseek".equals(defaultModelName)).build());
+        return List.of(ModelVO.builder().key("openai").displayName(openAiModel)
+                .description("OpenAI 兼容接口模型").isDefault("openai".equals(defaultModelName)).build());
     }
 }
