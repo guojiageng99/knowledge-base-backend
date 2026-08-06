@@ -81,8 +81,8 @@ public class ReviewNotificationListener {
     private List<Long> findReviewerIds() {
         try {
             return jdbcTemplate.queryForList(
-                    "SELECT ur.user_id FROM kb_user.kb_user_role ur "
-                            + "JOIN kb_user.kb_role r ON r.id = ur.role_id "
+                    "SELECT ur.user_id FROM kb_user.sys_user_role ur "
+                            + "JOIN kb_user.sys_role r ON r.id = ur.role_id "
                             + "JOIN kb_user.kb_user u ON u.id = ur.user_id "
                             + "WHERE r.role_code = 'ROLE_REVIEWER' AND u.status = 1 AND u.deleted = 0",
                     Long.class);

@@ -16,11 +16,15 @@ import com.knowledge.base.document.dto.DocumentDTO;
 import com.knowledge.base.document.dto.AutoSaveDTO;
 import com.knowledge.base.document.config.RabbitMQConfig;
 import com.knowledge.base.document.entity.Document;
+import com.knowledge.base.document.entity.DocumentReview;
 import com.knowledge.base.document.entity.DocumentTag;
+import com.knowledge.base.document.entity.DocumentVersion;
 import com.knowledge.base.document.entity.Tag;
 import com.knowledge.base.document.entity.mongodb.DocumentContent;
 import com.knowledge.base.document.mapper.DocumentTagMapper;
 import com.knowledge.base.document.mapper.DocumentMapper;
+import com.knowledge.base.document.mapper.DocumentReviewMapper;
+import com.knowledge.base.document.mapper.DocumentVersionMapper;
 import com.knowledge.base.document.mapper.TagMapper;
 import com.knowledge.base.document.service.DocumentService;
 import com.knowledge.base.document.service.DocumentVersionService;
@@ -63,6 +67,8 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
 
     private final DocumentMapper documentMapper;
     private final DocumentTagMapper documentTagMapper;
+    private final DocumentReviewMapper documentReviewMapper;
+    private final DocumentVersionMapper documentVersionMapper;
     private final TagMapper tagMapper;
     private final DocumentVersionService documentVersionService;
     private final DocumentContentService documentContentService;
@@ -207,6 +213,10 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document> i
         deleteContent(document);
         autoSaveHistoryService.deleteByDocumentId(documentId);
         clearDocumentTags(documentId);
+        documentReviewMapper.delete(new LambdaQueryWrapper<DocumentReview>()
+                .eq(DocumentReview::getDocumentId, documentId));
+        documentVersionMapper.delete(new LambdaQueryWrapper<DocumentVersion>()
+                .eq(DocumentVersion::getDocumentId, documentId));
         boolean deleted = documentMapper.deleteById(documentId) > 0;
         if (deleted) { triggerRagDelete(documentId); triggerGraphDelete(documentId); triggerSearchDelete(documentId); }
         return deleted;

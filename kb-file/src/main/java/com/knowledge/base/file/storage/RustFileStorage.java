@@ -2,25 +2,24 @@ package com.knowledge.base.file.storage;
 
 import com.knowledge.base.common.exception.BusinessException;
 import com.knowledge.base.file.config.FileStorageProperties;
+import io.minio.GetObjectArgs;
+import io.minio.GetObjectResponse;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
-import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartResponse;
@@ -40,16 +39,17 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RustFileStorage implements FileStorage {
 
     private final S3Client s3Client;
+    private final MinioClient minioClient;
     private final FileStorageProperties properties;
     private final Map<String, UploadSession> uploadSessions = new ConcurrentHashMap<>();
 
     @Override
     public boolean upload(InputStream inputStream, String relativePath, long fileSize) {
         try {
-            s3Client.putObject(PutObjectRequest.builder().bucket(bucketName()).key(relativePath).build(),
-                    RequestBody.fromInputStream(inputStream, fileSize));
+            minioClient.putObject(PutObjectArgs.builder().bucket(bucketName()).object(relativePath)
+                    .stream(inputStream, fileSize, -1).build());
             return true;
-        } catch (S3Exception exception) {
+        } catch (Exception exception) {
             log.error("Failed to upload object {}", relativePath, exception);
             throw new BusinessException("File upload failed", exception);
         }
@@ -57,10 +57,10 @@ public class RustFileStorage implements FileStorage {
 
     @Override
     public long download(String relativePath, OutputStream outputStream) {
-        try (ResponseInputStream<GetObjectResponse> inputStream = s3Client.getObject(
-                GetObjectRequest.builder().bucket(bucketName()).key(relativePath).build())) {
+        try (GetObjectResponse inputStream = minioClient.getObject(
+                GetObjectArgs.builder().bucket(bucketName()).object(relativePath).build())) {
             return inputStream.transferTo(outputStream);
-        } catch (S3Exception | IOException exception) {
+        } catch (Exception exception) {
             log.error("Failed to download object {}", relativePath, exception);
             throw new BusinessException("File download failed", exception);
         }
@@ -69,8 +69,8 @@ public class RustFileStorage implements FileStorage {
     @Override
     public InputStream getInputStream(String relativePath) {
         try {
-            return s3Client.getObject(GetObjectRequest.builder().bucket(bucketName()).key(relativePath).build());
-        } catch (S3Exception exception) {
+            return minioClient.getObject(GetObjectArgs.builder().bucket(bucketName()).object(relativePath).build());
+        } catch (Exception exception) {
             log.error("Failed to open object {}", relativePath, exception);
             throw new BusinessException("Unable to open file", exception);
         }
@@ -79,9 +79,9 @@ public class RustFileStorage implements FileStorage {
     @Override
     public boolean delete(String relativePath) {
         try {
-            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName()).key(relativePath).build());
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName()).object(relativePath).build());
             return true;
-        } catch (S3Exception exception) {
+        } catch (Exception exception) {
             log.error("Failed to delete object {}", relativePath, exception);
             throw new BusinessException("File deletion failed", exception);
         }
@@ -90,30 +90,33 @@ public class RustFileStorage implements FileStorage {
     @Override
     public boolean exists(String relativePath) {
         try {
-            s3Client.headObject(HeadObjectRequest.builder().bucket(bucketName()).key(relativePath).build());
+            minioClient.statObject(StatObjectArgs.builder().bucket(bucketName()).object(relativePath).build());
             return true;
-        } catch (NoSuchKeyException exception) {
-            return false;
-        } catch (S3Exception exception) {
-            return exception.statusCode() != 404 && failExistenceCheck(relativePath, exception);
+        } catch (Exception exception) {
+            return !isMissingObject(exception) && failExistenceCheck(relativePath, exception);
         }
     }
 
     @Override
     public long getFileSize(String relativePath) {
         try {
-            HeadObjectResponse response = s3Client.headObject(
-                    HeadObjectRequest.builder().bucket(bucketName()).key(relativePath).build());
-            return response.contentLength();
-        } catch (S3Exception exception) {
+            StatObjectResponse response = minioClient.statObject(
+                    StatObjectArgs.builder().bucket(bucketName()).object(relativePath).build());
+            return response.size();
+        } catch (Exception exception) {
             log.error("Failed to inspect object {}", relativePath, exception);
             throw new BusinessException("Unable to read file metadata", exception);
         }
     }
 
-    private boolean failExistenceCheck(String relativePath, S3Exception exception) {
+    private boolean failExistenceCheck(String relativePath, Exception exception) {
         log.error("Failed to check object {}", relativePath, exception);
         throw new BusinessException("File storage is unavailable", exception);
+    }
+
+    private boolean isMissingObject(Exception exception) {
+        return exception instanceof io.minio.errors.ErrorResponseException error
+                && ("NoSuchKey".equals(error.errorResponse().code()) || "NoSuchObject".equals(error.errorResponse().code()));
     }
 
     @Override

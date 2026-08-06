@@ -1,6 +1,7 @@
 FROM eclipse-temurin:21-jre
 
 WORKDIR /app
+COPY fonts/NotoSansSC-Variable.ttf /usr/share/fonts/truetype/noto/NotoSansSC-Variable.ttf
 ARG JAR_FILE
 COPY ${JAR_FILE} app.jar
 

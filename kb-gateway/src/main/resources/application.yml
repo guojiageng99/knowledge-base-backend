@@ -33,8 +33,15 @@ spring:
             - Path=/api/notifications/**
           filters:
             - RewritePath=/api/notifications(?<segment>/?.*), /api/foundation/notifications$\{segment}
-        - id: kb-foundation-ws
+        - id: kb-foundation-websocket
           uri: ${FOUNDATION_WS_URL:ws://localhost:8089}
+          predicates:
+            - Path=/ws/**
+            - Header=Upgrade, (?i)websocket
+          filters:
+            - RewritePath=/ws(?<segment>/?.*), /api/foundation/ws$\{segment}
+        - id: kb-foundation-sockjs
+          uri: ${FOUNDATION_SERVICE_URL:http://localhost:8089}
           predicates:
             - Path=/ws/**
           filters:

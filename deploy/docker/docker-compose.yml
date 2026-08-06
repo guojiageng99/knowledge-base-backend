@@ -65,6 +65,23 @@ services:
     volumes:
       - rustfs-data:/data
 
+  rustfs-init:
+    image: minio/mc:latest
+    container_name: kb-rustfs-init
+    restart: "no"
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:?set RUSTFS_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:?set RUSTFS_SECRET_KEY}
+      RUSTFS_BUCKET: knowledge-base
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        until mc alias set local http://rustfs:9000 "$$RUSTFS_ACCESS_KEY" "$$RUSTFS_SECRET_KEY";
+        do sleep 2; done;
+        mc mb --ignore-existing "local/$$RUSTFS_BUCKET"
+    depends_on:
+      rustfs: {condition: service_started}
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
     container_name: kb-elasticsearch
@@ -139,6 +156,7 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-kb}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?set RABBITMQ_PASSWORD}
+      APP_INSTANCE_ID: ${APP_INSTANCE_ID:-knowledge-base}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
       SPRING_CLOUD_NACOS_CONFIG_ENABLED: "false"
       SPRING_CLOUD_NACOS_DISCOVERY_ENABLED: "false"
@@ -193,7 +211,7 @@ services:
     depends_on:
       mysql: {condition: service_healthy}
       redis: {condition: service_healthy}
-      rustfs: {condition: service_started}
+      rustfs-init: {condition: service_completed_successfully}
       rabbitmq: {condition: service_started}
 
   foundation:

@@ -123,7 +123,7 @@ public class DocumentController {
 
     @GetMapping("/{documentId}/content")
     public Result<String> getDocumentContent(@PathVariable Long documentId) {
-        return Result.success(documentService.getDocumentContent(documentId));
+        return Result.success("Document content retrieved successfully", documentService.getDocumentContent(documentId));
     }
 
     @PatchMapping("/{documentId}/summary")

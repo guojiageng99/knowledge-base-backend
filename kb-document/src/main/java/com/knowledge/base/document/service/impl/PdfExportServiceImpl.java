@@ -157,7 +157,13 @@ public class PdfExportServiceImpl implements PdfExportService {
     }
 
     private PDFont loadFont(PDDocument pdf) throws IOException {
-        String[] paths = { configuredFontPath, "C:\\Windows\\Fonts\\simhei.ttf", "C:\\Windows\\Fonts\\simsun.ttc", "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc" };
+        String[] paths = {
+                configuredFontPath,
+                "C:\\Windows\\Fonts\\simhei.ttf",
+                "C:\\Windows\\Fonts\\simsun.ttc",
+                "/usr/share/fonts/truetype/noto/NotoSansSC-Variable.ttf",
+                "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
+        };
         for (String path : paths) {
             if (path == null || path.isBlank()) continue;
             java.nio.file.Path fontPath = java.nio.file.Path.of(path);

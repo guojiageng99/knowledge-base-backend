@@ -15,6 +15,11 @@ public class CorsResponseHeaderFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // A WebSocket upgrade commits response headers before completion; mutating them
+        // afterwards raises UnsupportedOperationException in the reactive server.
+        if (exchange.getRequest().getURI().getPath().startsWith("/ws/")) {
+            return chain.filter(exchange);
+        }
         return chain.filter(exchange).then(Mono.fromRunnable(() -> {
             HttpHeaders headers = exchange.getResponse().getHeaders();
             deduplicate(headers, HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN);

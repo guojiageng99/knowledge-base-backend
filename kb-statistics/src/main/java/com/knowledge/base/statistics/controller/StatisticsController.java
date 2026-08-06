@@ -13,7 +13,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/statistics")
+@RequestMapping
 @RequiredArgsConstructor
 public class StatisticsController {
     private final StatisticsService statisticsService;

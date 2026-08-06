@@ -26,6 +26,11 @@ public class UnifiedResponseFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // SockJS uses HTTP endpoints such as /info and /xhr_streaming as protocol frames.
+        // They must stay byte-for-byte compatible with the SockJS client.
+        if (exchange.getRequest().getURI().getPath().startsWith("/ws/")) {
+            return chain.filter(exchange);
+        }
         ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(exchange.getResponse()) {
             @Override
             public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
