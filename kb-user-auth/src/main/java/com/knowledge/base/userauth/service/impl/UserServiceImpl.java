@@ -78,6 +78,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createUser(UserDTO dto) {
+        requireAdministrator();
         User user = new User();
         user.setUsername(dto.getUsername()); user.setPassword(dto.getPassword());
         user.setEmail(dto.getEmail()); user.setPhone(dto.getPhone()); user.setAvatar(dto.getAvatar());
